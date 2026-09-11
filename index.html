@@ -48,9 +48,17 @@
           <div>
             <h1 class="text-2xl font-bold text-black">Dashboard Comercial</h1>
             <p class="text-xs md:text-sm text-gray-600">Análise por Filial, Grupo Econômico, Tecnologia (Líquida/Pó), Linhas/Família e Desempenho por Item</p>
-            <p id="lastUpdateText" class="text-xs text-[#1693a5] font-semibold mt-1">⏳ Carregando dados do GitHub...</p>
+            <div class="flex items-center gap-3 mt-1">
+              <p id="lastUpdateText" class="text-xs text-[#1693a5] font-semibold">⏳ Carregando dados do GitHub...</p>
+              <button id="btnRetryFetch" onclick="loadFromGitHub()" class="hidden text-xs bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-gray-700 font-medium">🔄 Tentar Novamente</button>
+            </div>
           </div>
         </div>
+      </div>
+      <!-- Fallback de Upload Manual caso a rede bloqueie o GitHub -->
+      <div id="manualUploadContainer" class="hidden flex items-center gap-2">
+        <label class="text-xs text-gray-500 font-semibold">Se preferir, selecione o arquivo local:</label>
+        <input type="file" id="fileInput" accept=".xlsx, .xls" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#1693a5] file:text-white hover:file:bg-[#0f6875] cursor-pointer"/>
       </div>
     </div>
 
@@ -386,7 +394,7 @@
   <script>
     let rawData = [];
     let chartInstances = {};
-    const GITHUB_EXCEL_URL = 'https://github.com/luanproject/dashboardcomercial/raw/refs/heads/main/dados.xls';
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/luanproject/dashboardcomercial/main/dados.xls';
 
     function normalizeStr(str) {
       if (str === null || str === undefined) return '';
@@ -470,50 +478,92 @@
       return grp;
     }
 
-    // Carregamento Automático da Planilha via Fetch no GitHub
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Carregamento Automatizado com Tratamento Avançado de CORS e Binary Stream
+    async function loadFromGitHub() {
       const lastUpdateEl = document.getElementById('lastUpdateText');
-      try {
-        const response = await fetch(GITHUB_EXCEL_URL);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        // Pega a data da última modificação retornada nos headers HTTP se disponível
-        const lastModifiedHeader = response.headers.get('Last-Modified');
-        let dataHoraStr = '';
-        
-        if (lastModifiedHeader) {
-          const modDate = new Date(lastModifiedHeader);
-          dataHoraStr = modDate.toLocaleDateString('pt-BR') + ' às ' + modDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        } else {
-          const now = new Date();
-          dataHoraStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        }
+      const retryBtn = document.getElementById('btnRetryFetch');
+      const uploadManual = document.getElementById('manualUploadContainer');
 
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+      lastUpdateEl.innerText = '⏳ Carregando dados do GitHub...';
+      lastUpdateEl.className = 'text-xs text-[#1693a5] font-semibold';
+      retryBtn.classList.add('hidden');
+
+      try {
+        const response = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Status HTTP: ${response.status}`);
+        
+        const blob = await response.blob();
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            let wsname = workbook.SheetNames.find(s => normalizeStr(s) === 'dados');
+            if (!wsname) wsname = workbook.SheetNames[0];
+
+            const ws = workbook.Sheets[wsname];
+            rawData = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+            if (rawData.length === 0) {
+              lastUpdateEl.innerText = '⚠️ Planilha sem dados válidos no repositório.';
+              return;
+            }
+
+            const now = new Date();
+            const dataHoraStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            lastUpdateEl.innerText = `📅 Última atualização: ${dataHoraStr}`;
+
+            setupFilters();
+            updateDashboard();
+          } catch (err) {
+            console.error('Erro ao processar XLSX:', err);
+            showError('❌ Falha ao ler a planilha baixada.');
+          }
+        };
+
+        reader.readAsArrayBuffer(blob);
+
+      } catch (err) {
+        console.error('Erro no Fetch do GitHub:', err);
+        showError('❌ Erro ao carregar planilha do GitHub.');
+      }
+
+      function showError(msg) {
+        lastUpdateEl.innerText = msg;
+        lastUpdateEl.className = 'text-xs text-red-600 font-semibold';
+        retryBtn.classList.remove('hidden');
+        uploadManual.classList.remove('hidden');
+      }
+    }
+
+    // Processar arquivo enviado via upload manual
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
         
         let wsname = workbook.SheetNames.find(s => normalizeStr(s) === 'dados');
-        if (!wsname) {
-          wsname = workbook.SheetNames[0];
-        }
+        if (!wsname) wsname = workbook.SheetNames[0];
 
         const ws = workbook.Sheets[wsname];
         rawData = XLSX.utils.sheet_to_json(ws, { defval: "" });
 
-        if (rawData.length === 0) {
-          lastUpdateEl.innerText = '⚠️ Planilha sem dados disponíveis no GitHub.';
-          return;
-        }
-
-        lastUpdateEl.innerText = `📅 Última atualização da planilha: ${dataHoraStr}`;
+        document.getElementById('lastUpdateText').innerText = `📂 Dados carregados via arquivo manual (${file.name})`;
+        document.getElementById('lastUpdateText').className = 'text-xs text-emerald-600 font-semibold';
 
         setupFilters();
         updateDashboard();
-      } catch (err) {
-        console.error('Erro ao carregar do GitHub:', err);
-        lastUpdateEl.innerText = '❌ Erro ao carregar planilha diretamente do GitHub.';
-      }
+      };
+      reader.readAsArrayBuffer(file);
     });
+
+    document.addEventListener('DOMContentLoaded', loadFromGitHub);
 
     document.getElementById('btnResetFilters').addEventListener('click', () => {
       document.getElementById('filterItem').value = '';
