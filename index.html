@@ -484,7 +484,7 @@
       const retryBtn = document.getElementById('btnRetryFetch');
       const uploadManual = document.getElementById('manualUploadContainer');
 
-      lastUpdateEl.innerText = '⏳ Carregando dados do GitHub...';
+      lastUpdateEl.innerText = '⏳ Aguarde, carregando dados...⏳';
       lastUpdateEl.className = 'text-xs text-[#1693a5] font-semibold';
       retryBtn.classList.add('hidden');
 
@@ -527,7 +527,7 @@
 
       } catch (err) {
         console.error('Erro no Fetch do GitHub:', err);
-        showError('❌ Erro ao carregar planilha do GitHub.');
+        showError('❌ Erro ao carregar planilha.');
       }
 
       function showError(msg) {
