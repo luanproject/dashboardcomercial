@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Comercial, Produtos & Margem</title>
+
+  <!-- Script de Autenticação / Senha -->
+  <script>
+    (function() {
+      var senhaCorreta = "DadosIA1359";
+      var entrada = prompt("Digite a senha para acessar o Dashboard:");
+      if (entrada !== senhaCorreta) {
+        alert("Senha incorreta!");
+        document.write("<h2 style='color:red; text-align:center; margin-top:50px; font-family:sans-serif;'>Acesso Negado</h2>");
+        window.stop();
+      }
+    })();
+  </script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ffffff; color: #000000; }
+    .card-stat { transition: all 0.2s ease-in-out; }
+    .card-stat:hover { transform: translateY(-2px); }
+    .custom-border { border-color: #d8d8c0; }
+    .custom-bg-light { background-color: #f0f0d8; }
+    .custom-btn { background-color: #1693a5; color: #ffffff; }
+    .custom-btn:hover { background-color: #0f6875; }
+    .custom-teal-border { border-left-color: #1693a5; }
+    .custom-dark-border { border-left-color: #000000; }
+  </style>
+</head>
+<body class="p-4 md:p-6">
+
+  <div class="max-w-[1700px] mx-auto space-y-6">
+    
+    <!-- Cabeçalho -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">📊</span>
+          <div>
+            <h1 class="text-2xl font-bold text-black">Dashboard Comercial, Produtos & Margem</h1>
+            <p class="text-xs md:text-sm text-gray-600">Análise por Filial, Grupo Econômico, Tecnologia (Líquida/Pó), Linhas/Família e Desempenho por Item</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <label class="w-full md:w-auto custom-btn font-medium px-5 py-2.5 rounded-xl cursor-pointer transition flex items-center justify-center gap-2 shadow-sm text-sm">
+          <span>📁 Carregar Relatório (Excel/CSV)</span>
+          <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Painel de Filtros Avançado -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Filtros de Pesquisa</h2>
+        <button id="btnResetFilters" class="text-xs font-semibold transition flex items-center gap-1 hover:underline" style="color: #1693a5;">
+          🔄 Limpar Todos os Filtros
+        </button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">🔍 Pesquisar Item (Cód / Descrição)</label>
+          <input type="text" id="filterItem" placeholder="Ex: 601300061 ou Massa..." class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Grupo Econômico</label>
+          <select id="filterGrupo" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todos os Grupos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Filial / Planta</label>
+          <select id="filterFilial" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todas as Filiais</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Líquida / Pó</label>
+          <select id="filterLiquidaPo" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Linha Comercial</label>
+          <select id="filterLinha" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todas as Linhas</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Família Comercial</label>
+          <select id="filterFamilia" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todas as Famílias</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Cliente</label>
+          <select id="filterCliente" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todos os Clientes</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Mês</label>
+          <select id="filterMes" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+            <option value="">Todos os Meses</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs Principais -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Linha 1 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Faturamento Líquido 2026</span>
+        <div class="flex items-baseline justify-between mt-1">
+          <p id="kpiLiq2026" class="text-xl font-bold text-black">R$ 0,00</p>
+          <span id="kpiVarLiq" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
+        </div>
+        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiLiq2025" class="font-medium text-black">R$ 0,00</span></p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Volume Faturado 2026 (LT)</span>
+        <div class="flex items-baseline justify-between mt-1">
+          <p id="kpiVol2026" class="text-xl font-bold text-black">0 LT</p>
+          <span id="kpiVarVol" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
+        </div>
+        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiVol2025" class="font-medium text-black">0 LT</span></p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Preço Médio 2026</span>
+        <div class="flex items-baseline justify-between mt-1">
+          <p id="kpiPrcMed2026" class="text-xl font-bold text-black">R$ 0,00</p>
+          <span id="kpiVarPrcMed" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
+        </div>
+        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiPrcMed2025" class="font-medium text-black">R$ 0,00/LT</span></p>
+      </div>
+
+      <!-- Linha 2 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Prazo Médio</span>
+        <p id="kpiPrazoMedio" class="text-xl font-bold text-black mt-1">0 dias</p>
+        <p class="text-[11px] text-gray-500 mt-2" id="kpiPrazoSub">Ponderado pelo faturamento</p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Margem Contribuição (R$)</span>
+        <p id="kpiMC" class="text-xl font-bold text-black mt-1">R$ 0,00</p>
+        <p class="text-[11px] text-gray-500 mt-2">Custo MAT + Frete: <span id="kpiCustosTotal" class="font-medium text-black">R$ 0,00</span></p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
+        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Margem Contribuição (%)</span>
+        <p id="kpiMCPct" class="text-xl font-bold text-black mt-1">0,0%</p>
+        <p class="text-[11px] text-gray-500 mt-2">Margem Bruta (% MB): <span id="kpiMBPct" class="font-medium text-black">0,0%</span></p>
+      </div>
+    </div>
+
+    <!-- Gráficos Comerciais & Produtos -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+        <h2 class="text-sm font-bold text-black mb-3">Tinta Líquida vs Tinta Pó (2026)</h2>
+        <div class="h-60">
+          <canvas id="chartTecnologia"></canvas>
+        </div>
+      </div>
+      
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+        <h2 class="text-sm font-bold text-black mb-3">Faturamento por Filial / Planta</h2>
+        <div class="h-60">
+          <canvas id="chartFilial"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+        <h2 class="text-sm font-bold text-black mb-3">Faturamento por Linha Comercial</h2>
+        <div class="h-60">
+          <canvas id="chartLinhaComercial"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Itens e Evolução Mensal -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+        <h2 class="text-sm font-bold text-black mb-3">Top 10 Itens Mais Vendidos (2025 vs 2026)</h2>
+        <div class="h-64">
+          <canvas id="chartTopItens"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+        <h2 class="text-sm font-bold text-black mb-3">Evolução Mensal (Líquido 2025 vs 2026)</h2>
+        <div class="h-64">
+          <canvas id="chartEvolucao"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO GRUPO ECONÔMICO (LADO A LADO) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Gráfico por Grupo Econômico -->
+      <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border custom-border flex flex-col justify-between">
+        <div>
+          <h2 class="text-base font-bold text-black">📊 Faturamento por Grupo Econômico</h2>
+          <p class="text-xs text-gray-500 mb-4">Comparativo de faturamento líquido (2025 vs 2026)</p>
+        </div>
+        <div class="h-80">
+          <canvas id="chartGrupoEconomico"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela Ranking por Grupo Econômico -->
+      <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border custom-border overflow-hidden flex flex-col justify-between">
+        <div>
+          <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 class="text-base font-bold text-black">🏢 Ranking por Grupo Econômico (2026)</h2>
+              <p class="text-xs text-gray-500">Desempenho consolidado agregando redes e filiais</p>
+            </div>
+            <div id="gruposCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
+              0 grupos
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+                <tr>
+                  <th class="py-3 px-3">Grupo Econômico</th>
+                  <th class="py-3 px-3 text-right">Liq. 2025</th>
+                  <th class="py-3 px-3 text-right">Liq. 2026</th>
+                  <th class="py-3 px-3 text-right">% Var Liq</th>
+                  <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+                  <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+                  <th class="py-3 px-3 text-right">% Var Vol</th>
+                  <th class="py-3 px-3 text-right">Preço Médio 26</th>
+                  <th class="py-3 px-3 text-right">% MC</th>
+                </tr>
+              </thead>
+              <tbody id="tableBodyGrupos" class="divide-y custom-border text-black">
+                <tr>
+                  <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABELA: RANKING POR CLIENTE INDIVIDUAL -->
+    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+      <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="text-base font-bold text-black">🏪 Ranking por Cliente Individual (2026)</h2>
+          <p class="text-xs text-gray-500">Desempenho detalhado de vendas por cliente/filial ordenados pelo faturamento</p>
+        </div>
+        <div id="clientesCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
+          0 clientes
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+            <tr>
+              <th class="py-3 px-3">Cliente</th>
+              <th class="py-3 px-3 text-right">Liq. 2025</th>
+              <th class="py-3 px-3 text-right">Liq. 2026</th>
+              <th class="py-3 px-3 text-right">% Var Liq</th>
+              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+              <th class="py-3 px-3 text-right">% Var Vol</th>
+              <th class="py-3 px-3 text-right">Preço Médio 26</th>
+              <th class="py-3 px-3 text-right">% MC</th>
+            </tr>
+          </thead>
+          <tbody id="tableBodyClientes" class="divide-y custom-border text-black">
+            <tr>
+              <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABELA 1: TOP ITENS POR FATURAMENTO (CONSOLIDADO) -->
+    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+      <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="text-base font-bold text-black">🏆 Itens por Faturamento (2026)</h2>
+          <p class="text-xs text-gray-500">Principais itens consolidados ordenados pelo maior faturamento líquido em 2026</p>
+        </div>
+        <div id="topItensCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
+          0 itens
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+            <tr>
+              <th class="py-3 px-3">Filial</th>
+              <th class="py-3 px-3">Tipo</th>
+              <th class="py-3 px-3">Linha / Família</th>
+              <th class="py-3 px-3">Item (Cód. - Descrição)</th>
+              <th class="py-3 px-3 text-right">Liq. 2025</th>
+              <th class="py-3 px-3 text-right">Liq. 2026</th>
+              <th class="py-3 px-3 text-right">% Var Liq</th>
+              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+              <th class="py-3 px-3 text-right">% Var Vol</th>
+              <th class="py-3 px-3 text-right">% MC</th>
+            </tr>
+          </thead>
+          <tbody id="tableBodyTopItens" class="divide-y custom-border text-black">
+            <tr>
+              <td colspan="11" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABELA 2: DESEMPENHO DAS LINHAS COMERCIAIS -->
+    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+      <div class="p-5 border-b custom-border">
+        <h2 class="text-base font-bold text-black">📊 Desempenho por Linha Comercial</h2>
+        <p class="text-xs text-gray-500">Consolidado de faturamento, volume e margem % por linha comercial</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+            <tr>
+              <th class="py-3 px-3">Linha Comercial</th>
+              <th class="py-3 px-3 text-right">Liq. 2025</th>
+              <th class="py-3 px-3 text-right">Liq. 2026</th>
+              <th class="py-3 px-3 text-right">% Var Liq</th>
+              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+              <th class="py-3 px-3 text-right">% Var Vol</th>
+              <th class="py-3 px-3 text-right">% MC</th>
+            </tr>
+          </thead>
+          <tbody id="tableBodyLinhas" class="divide-y custom-border text-black">
+            <tr>
+              <td colspan="8" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABELA 3: TOP 10 FAMÍLIAS COMERCIAIS -->
+    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+      <div class="p-5 border-b custom-border">
+        <h2 class="text-base font-bold text-black">⭐ Top 10 Famílias Comerciais</h2>
+        <p class="text-xs text-gray-500">As 10 maiores famílias em faturamento em 2026</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+            <tr>
+              <th class="py-3 px-3">Família Comercial</th>
+              <th class="py-3 px-3">Linha Pertencente</th>
+              <th class="py-3 px-3 text-right">Liq. 2025</th>
+              <th class="py-3 px-3 text-right">Liq. 2026</th>
+              <th class="py-3 px-3 text-right">% Var Liq</th>
+              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+              <th class="py-3 px-3 text-right">% Var Vol</th>
+              <th class="py-3 px-3 text-right">% MC</th>
+            </tr>
+          </thead>
+          <tbody id="tableBodyFamilias" class="divide-y custom-border text-black">
+            <tr>
+              <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let rawData = [];
+    let chartInstances = {};
+
+    function normalizeStr(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    }
+
+    function getVal(row, keys, isNum = true) {
+      const normalizedRow = {};
+      Object.keys(row).forEach(k => {
+        normalizedRow[normalizeStr(k)] = row[k];
+      });
+
+      for (let key of keys) {
+        let normKey = normalizeStr(key);
+        if (normalizedRow[normKey] !== undefined && normalizedRow[normKey] !== null && normalizedRow[normKey] !== '') {
+          if (!isNum) return String(normalizedRow[normKey]).trim();
+          let val = normalizedRow[normKey];
+          
+          if (typeof val === 'number') {
+            return isNaN(val) ? 0 : val;
+          }
+
+          if (typeof val === 'string') {
+            let cleaned = val.replace('R$', '')
+                             .replace('%', '')
+                             .replace(/dias?/gi, '')
+                             .replace(/d/gi, '')
+                             .trim();
+            
+            if (cleaned.includes(',') && !cleaned.includes('.')) {
+              cleaned = cleaned.replace(',', '.');
+            } else if (cleaned.includes('.') && cleaned.includes(',')) {
+              cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+            }
+            
+            let n = parseFloat(cleaned);
+            if (!isNaN(n)) return n;
+
+            let match = val.match(/\d+(\.\d+)?/);
+            if (match) {
+              let parsed = parseFloat(match[0]);
+              if (!isNaN(parsed)) return parsed;
+            }
+          }
+          return 0;
+        }
+      }
+      return isNum ? 0 : '';
+    }
+
+    function getGrupoEconomico(d) {
+      let grp = getVal(d, ['Grupo Econômico', 'Grupo Economico', 'Grupo Econômico / Rede', 'Grupo', 'Rede'], false);
+      if (!grp) {
+        let nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
+        if (nome) {
+          grp = nome.replace(/^\d+\s*[-_]\s*/, '').trim();
+        } else {
+          grp = 'OUTROS / SEM GRUPO';
+        }
+      }
+
+      const aliasMap = {
+        'COMERCIAL R': 'COMERCIAL ROFE',
+        'DIST ADAUTO': 'DISTAC DISTRIBUIDORA',
+        'CONDOR ATAC': 'CONDOR ATACADISTA',
+        'RAMACON DISTRIBUIDORA DE MATERIAL PARA CONSTRUCAO EIRELI': 'RAMACON DISTRIBUIDORA',
+        'DISTRIBUIDORA MAIA DE MATERIAL DE CONSTRUCAO LTDA': 'NILO MAIA'
+      };
+
+      const grpTrim = grp.trim();
+      if (aliasMap[grpTrim]) {
+        return aliasMap[grpTrim];
+      }
+
+      for (let key in aliasMap) {
+        if (key.toLowerCase() === grpTrim.toLowerCase()) {
+          return aliasMap[key];
+        }
+      }
+
+      return grp;
+    }
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const wsname = workbook.SheetNames[0];
+          const ws = workbook.Sheets[wsname];
+          rawData = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+          if (rawData.length === 0) {
+            alert('Nenhum dado encontrado na aba.');
+            return;
+          }
+
+          console.log("Colunas encontradas:", Object.keys(rawData[0]));
+
+          setupFilters();
+          updateDashboard();
+        } catch(err) {
+          alert('Erro ao carregar o arquivo.');
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('btnResetFilters').addEventListener('click', () => {
+      document.getElementById('filterItem').value = '';
+      document.getElementById('filterGrupo').value = '';
+      document.getElementById('filterFilial').value = '';
+      document.getElementById('filterLiquidaPo').value = '';
+      document.getElementById('filterLinha').value = '';
+      document.getElementById('filterFamilia').value = '';
+      document.getElementById('filterCliente').value = '';
+      document.getElementById('filterMes').value = '';
+      updateDashboard();
+    });
+
+    function setupFilters() {
+      const grupos = [...new Set(rawData.map(d => getGrupoEconomico(d)))].filter(Boolean).sort();
+      const filiais = [...new Set(rawData.map(d => getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false)))].filter(Boolean).sort();
+      const liqPo = [...new Set(rawData.map(d => getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false)))].filter(Boolean).sort();
+      const linhas = [...new Set(rawData.map(d => getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false)))].filter(Boolean).sort();
+      const familias = [...new Set(rawData.map(d => getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false)))].filter(Boolean).sort();
+      
+      const clientes = [...new Set(rawData.map(d => {
+        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
+        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
+        return cod && nome ? `${cod} - ${nome}` : (nome || cod || '');
+      }))].filter(Boolean).sort();
+
+      const meses = [...new Set(rawData.map(d => getVal(d, ['Mês', 'mês', 'Mes'], false)))].filter(Boolean).sort((a, b) => getMonthRank(a) - getMonthRank(b));
+
+      fillSelect('filterGrupo', grupos);
+      fillSelect('filterFilial', filiais);
+      fillSelect('filterLiquidaPo', liqPo);
+      fillSelect('filterLinha', linhas);
+      fillSelect('filterFamilia', familias);
+      fillSelect('filterCliente', clientes);
+      fillSelect('filterMes', meses);
+
+      ['filterGrupo', 'filterFilial', 'filterLiquidaPo', 'filterLinha', 'filterFamilia', 'filterCliente', 'filterMes'].forEach(id => {
+        document.getElementById(id).onchange = updateDashboard;
+      });
+
+      document.getElementById('filterItem').oninput = updateDashboard;
+    }
+
+    function fillSelect(id, items) {
+      const select = document.getElementById(id);
+      const curr = select.value;
+      select.innerHTML = `<option value="">Todos</option>`;
+      items.forEach(item => {
+        select.innerHTML += `<option value="${item}">${item}</option>`;
+      });
+      select.value = curr;
+    }
+
+    function getFilteredData() {
+      const fItem = normalizeStr(document.getElementById('filterItem').value);
+      const fGrupo = document.getElementById('filterGrupo').value;
+      const fFilial = document.getElementById('filterFilial').value;
+      const fLiqPo = document.getElementById('filterLiquidaPo').value;
+      const fLinha = document.getElementById('filterLinha').value;
+      const fFamilia = document.getElementById('filterFamilia').value;
+      const fCliente = document.getElementById('filterCliente').value;
+      const fMes = document.getElementById('filterMes').value;
+
+      return rawData.filter(d => {
+        const grupo = getGrupoEconomico(d);
+        const filial = getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false);
+        const liqPo = getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false);
+        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false);
+        const familia = getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false);
+        
+        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
+        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
+        const cliStr = cod && nome ? `${cod} - ${nome}` : (nome || cod || '');
+        const mes = getVal(d, ['Mês', 'mês', 'Mes'], false);
+
+        const itemCod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
+        const itemDesc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
+        const itemSearchStr = normalizeStr(`${itemCod} ${itemDesc}`);
+
+        return (!fItem || itemSearchStr.includes(fItem)) &&
+               (!fGrupo || grupo === fGrupo) &&
+               (!fFilial || filial === fFilial) &&
+               (!fLiqPo || liqPo === fLiqPo) &&
+               (!fLinha || linha === fLinha) &&
+               (!fFamilia || familia === fFamilia) &&
+               (!fCliente || cliStr === fCliente) &&
+               (!fMes || mes === fMes);
+      });
+    }
+
+    function getMonthRank(m) {
+      const norm = normalizeStr(m);
+      if (norm.startsWith('jan')) return 1;
+      if (norm.startsWith('fev')) return 2;
+      if (norm.startsWith('mar')) return 3;
+      if (norm.startsWith('abr')) return 4;
+      if (norm.startsWith('mai')) return 5;
+      if (norm.startsWith('jun')) return 6;
+      if (norm.startsWith('jul')) return 7;
+      if (norm.startsWith('ago')) return 8;
+      if (norm.startsWith('set')) return 9;
+      if (norm.startsWith('out')) return 10;
+      if (norm.startsWith('nov')) return 11;
+      if (norm.startsWith('dez')) return 12;
+      
+      const num = parseInt(norm);
+      if (!isNaN(num) && num >= 1 && num <= 12) return num;
+      return 99;
+    }
+
+    function updateDashboard() {
+      const data = getFilteredData();
+
+      let liq2025 = 0, liq2026 = 0;
+      let vol2025 = 0, vol2026 = 0;
+      let mcRs = 0, custoMat = 0, custoGgf = 0;
+      let countMb = 0, totalMbPct = 0;
+      let countMc = 0, totalMcPct = 0;
+      
+      let somaPrazoPonderado26 = 0;
+      let somaPrazoPonderado25 = 0;
+      let somaPrazoSimples = 0;
+      let countPrazo = 0;
+
+      const prazoKeys = [
+        'Pz Med', 'Pz. Med', 'Pz.Med', 'PzMed',
+        'Prazo Médio (Dias)', 'Prazo Médio', 'Prazo Medio', 
+        'Prazo de Pagamento', 'Prazo medio (dias)', 'Prazo', 'PM'
+      ];
+
+      data.forEach(d => {
+        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        
+        liq2025 += l25;
+        liq2026 += l26;
+        vol2025 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        vol2026 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+        custoMat += getVal(d, ['R$ Custo MAT', 'custo matéria prima', 'Custo MAT']);
+        custoGgf += getVal(d, ['R$ Custo GGF', 'custo frete', 'Custo GGF']);
+
+        let mb = getVal(d, ['% MB', 'margem bruta', 'MB']);
+        if (mb) { totalMbPct += mb; countMb++; }
+
+        let mc = getVal(d, ['% MC', 'margem de contribuição em %', 'MC %']);
+        if (mc) { totalMcPct += mc; countMc++; }
+
+        let prazo = getVal(d, prazoKeys);
+        if (prazo > 0) {
+          somaPrazoPonderado26 += (prazo * l26);
+          somaPrazoPonderado25 += (prazo * l25);
+          somaPrazoSimples += prazo;
+          countPrazo++;
+        }
+      });
+
+      const varLiq = liq2025 > 0 ? ((liq2026 - liq2025) / liq2025) * 100 : 0;
+      const varVol = vol2025 > 0 ? ((vol2026 - vol2025) / vol2025) * 100 : 0;
+      const avgMcPct = liq2026 > 0 ? (mcRs / liq2026) * 100 : (countMc > 0 ? totalMcPct / countMc : 0);
+      const avgMbPct = countMb > 0 ? totalMbPct / countMb : 0;
+
+      const prcMed2025 = vol2025 > 0 ? liq2025 / vol2025 : 0;
+      const prcMed2026 = vol2026 > 0 ? liq2026 / vol2026 : 0;
+      const varPrcMed = prcMed2025 > 0 ? ((prcMed2026 - prcMed2025) / prcMed2025) * 100 : 0;
+      
+      let avgPrazo = 0;
+      let subtextPrazo = "Média simples dos itens";
+
+      if (liq2026 > 0 && somaPrazoPonderado26 > 0) {
+        avgPrazo = somaPrazoPonderado26 / liq2026;
+        subtextPrazo = "Ponderado pelo faturamento 2026";
+      } else if (liq2025 > 0 && somaPrazoPonderado25 > 0) {
+        avgPrazo = somaPrazoPonderado25 / liq2025;
+        subtextPrazo = "Ponderado pelo faturamento 2025";
+      } else if (countPrazo > 0) {
+        avgPrazo = somaPrazoSimples / countPrazo;
+        subtextPrazo = `Média simples (${countPrazo} registros)`;
+      } else {
+        subtextPrazo = "Nenhum prazo > 0 encontrado";
+      }
+
+      document.getElementById('kpiLiq2026').innerText = formatCurr(liq2026);
+      document.getElementById('kpiLiq2025').innerText = formatCurr(liq2025);
+      renderBadge('kpiVarLiq', varLiq);
+
+      document.getElementById('kpiVol2026').innerText = `${vol2026.toLocaleString('pt-BR')} LT`;
+      document.getElementById('kpiVol2025').innerText = `${vol2025.toLocaleString('pt-BR')} LT`;
+      renderBadge('kpiVarVol', varVol);
+
+      document.getElementById('kpiPrcMed2026').innerText = formatCurr(prcMed2026);
+      document.getElementById('kpiPrcMed2025').innerText = formatCurr(prcMed2025);
+      renderBadge('kpiVarPrcMed', varPrcMed);
+
+      document.getElementById('kpiPrazoMedio').innerText = `${Math.round(avgPrazo)} dias`;
+      document.getElementById('kpiPrazoSub').innerText = subtextPrazo;
+
+      document.getElementById('kpiMC').innerText = formatCurr(mcRs);
+      document.getElementById('kpiCustosTotal').innerText = formatCurr(custoMat + custoGgf);
+      document.getElementById('kpiMCPct').innerText = `${avgMcPct.toFixed(1)}%`;
+      document.getElementById('kpiMBPct').innerText = `${avgMbPct.toFixed(1)}%`;
+
+      renderCharts(data);
+      
+      renderGruposTable(data);
+      renderClientesTable(data);
+      renderTopItensTable(data);
+      renderLinhasTable(data);
+      renderFamiliasTable(data);
+    }
+
+    function renderBadge(id, val) {
+      const el = document.getElementById(id);
+      el.innerText = `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`;
+      el.className = val > 0 ? 'text-xs font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700' :
+                     val < 0 ? 'text-xs font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700' :
+                               'text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600';
+    }
+
+    function formatCurr(val) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function renderCharts(data) {
+      const grupoGroup = {};
+      data.forEach(d => {
+        const g = getGrupoEconomico(d);
+        if (!grupoGroup[g]) grupoGroup[g] = { l25: 0, l26: 0 };
+        grupoGroup[g].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        grupoGroup[g].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+
+      const top5Grupos = Object.entries(grupoGroup).sort((a, b) => b[1].l26 - a[1].l26).slice(0, 5);
+      createHorizontalDoubleBar('chartGrupoEconomico', top5Grupos);
+
+      const tecGroup = {};
+      data.forEach(d => {
+        const t = getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false) || 'Outros';
+        tecGroup[t] = (tecGroup[t] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+      createDoughnut('chartTecnologia', tecGroup, ['#1693a5', '#000000', '#d8d8c0', '#555555']);
+
+      const filialGroup = {};
+      data.forEach(d => {
+        const f = getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false) || 'Sem Filial';
+        filialGroup[f] = (filialGroup[f] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+      createBar('chartFilial', filialGroup, '#1693a5');
+
+      const linhaGroup = {};
+      data.forEach(d => {
+        const l = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || 'Outras';
+        linhaGroup[l] = (linhaGroup[l] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+      createBar('chartLinhaComercial', linhaGroup, '#000000');
+
+      const itemGroup = {};
+      data.forEach(d => {
+        const cod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
+        const desc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
+        const name = cod && desc ? `${cod} - ${desc}` : (desc || cod || 'Item N/A');
+        
+        if (!itemGroup[name]) {
+          itemGroup[name] = { l25: 0, l26: 0 };
+        }
+        itemGroup[name].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        itemGroup[name].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+
+      const top10 = Object.entries(itemGroup).sort((a,b) => b[1].l26 - a[1].l26).slice(0, 10);
+      createHorizontalDoubleBar('chartTopItens', top10);
+
+      const mesMap = {};
+      data.forEach(d => {
+        const mes = getVal(d, ['Mês', 'mês', 'Mes'], false) || 'N/A';
+        if (!mesMap[mes]) mesMap[mes] = { l25: 0, l26: 0 };
+        mesMap[mes].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        mesMap[mes].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+      });
+
+      const labels = Object.keys(mesMap).sort((a, b) => getMonthRank(a) - getMonthRank(b));
+      createDoubleBar('chartEvolucao', labels, labels.map(m => mesMap[m].l25), labels.map(m => mesMap[m].l26));
+    }
+
+    function createDoughnut(id, groupObj, colors) {
+      if (chartInstances[id]) chartInstances[id].destroy();
+      chartInstances[id] = new Chart(document.getElementById(id), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(groupObj),
+          datasets: [{ data: Object.values(groupObj), backgroundColor: colors }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function createBar(id, groupObj, color) {
+      if (chartInstances[id]) chartInstances[id].destroy();
+      chartInstances[id] = new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(groupObj),
+          datasets: [{ label: 'Faturamento 2026', data: Object.values(groupObj), backgroundColor: color, borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function createHorizontalDoubleBar(id, topArray) {
+      if (chartInstances[id]) chartInstances[id].destroy();
+      chartInstances[id] = new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+          labels: topArray.map(c => c[0].length > 25 ? c[0].substring(0, 25) + '...' : c[0]),
+          datasets: [
+            { label: 'Líquido 2025', data: topArray.map(c => c[1].l25), backgroundColor: '#d8d8c0', borderRadius: 6 },
+            { label: 'Líquido 2026', data: topArray.map(c => c[1].l26), backgroundColor: '#1693a5', borderRadius: 6 }
+          ]
+        },
+        options: { 
+          indexAxis: 'y', 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          plugins: { legend: { position: 'top' } } 
+        }
+      });
+    }
+
+    function createDoubleBar(id, labels, data1, data2) {
+      if (chartInstances[id]) chartInstances[id].destroy();
+      chartInstances[id] = new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Líquido 2025', data: data1, backgroundColor: '#d8d8c0', borderRadius: 6 },
+            { label: 'Líquido 2026', data: data2, backgroundColor: '#1693a5', borderRadius: 6 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+      });
+    }
+
+    function renderGruposTable(data) {
+      const tbody = document.getElementById('tableBodyGrupos');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum grupo encontrado.</td></tr>`;
+        document.getElementById('gruposCount').innerText = `Exibindo 0 grupos`;
+        return;
+      }
+
+      const grouped = {};
+
+      data.forEach(d => {
+        const grpStr = getGrupoEconomico(d);
+
+        if (!grouped[grpStr]) {
+          grouped[grpStr] = { grpStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
+        }
+
+        grouped[grpStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        grouped[grpStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        grouped[grpStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        grouped[grpStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        grouped[grpStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+      });
+
+      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
+      document.getElementById('gruposCount').innerText = `Exibindo ${sorted.length} grupo(s)`;
+
+      const rows = sorted.map(d => {
+        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
+        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
+        const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
+        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
+
+        return `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="py-3 px-3 font-semibold text-black">${d.grpStr}</td>
+            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
+            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
+            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${formatCurr(prcMed)}</td>
+            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rows.join('');
+    }
+
+    function renderClientesTable(data) {
+      const tbody = document.getElementById('tableBodyClientes');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum cliente encontrado.</td></tr>`;
+        document.getElementById('clientesCount').innerText = `Exibindo 0 clientes`;
+        return;
+      }
+
+      const grouped = {};
+
+      data.forEach(d => {
+        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
+        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
+        const cliStr = cod && nome ? `${cod} - ${nome}` : (nome || cod || 'CLIENTE NÃO IDENTIFICADO');
+
+        if (!grouped[cliStr]) {
+          grouped[cliStr] = { cliStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
+        }
+
+        grouped[cliStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        grouped[cliStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        grouped[cliStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        grouped[cliStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        grouped[cliStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+      });
+
+      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
+      document.getElementById('clientesCount').innerText = `Exibindo ${sorted.length} cliente(s)`;
+
+      const rows = sorted.map(d => {
+        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
+        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
+        const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
+        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
+
+        return `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="py-3 px-3 font-semibold text-black">${d.cliStr}</td>
+            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
+            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
+            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${formatCurr(prcMed)}</td>
+            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rows.join('');
+    }
+
+    function renderTopItensTable(data) {
+      const tbody = document.getElementById('tableBodyTopItens');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-gray-400">Nenhum registro encontrado.</td></tr>`;
+        document.getElementById('topItensCount').innerText = `Exibindo 0 itens`;
+        return;
+      }
+
+      const grouped = {};
+
+      data.forEach(d => {
+        const itemCod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
+        const itemDesc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
+        const itemKey = itemCod || itemDesc || 'DESCONHECIDO';
+
+        if (!grouped[itemKey]) {
+          grouped[itemKey] = {
+            filial: getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false) || '-',
+            tipo: getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false) || '-',
+            linha: getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || '-',
+            familia: getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false) || '-',
+            itemStr: itemCod && itemDesc ? `${itemCod} - ${itemDesc}` : (itemDesc || itemCod || 'N/A'),
+            l25: 0,
+            l26: 0,
+            v25: 0,
+            v26: 0,
+            mcRs: 0
+          };
+        }
+
+        grouped[itemKey].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        grouped[itemKey].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        grouped[itemKey].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        grouped[itemKey].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        grouped[itemKey].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+      });
+
+      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
+
+      const fItem = normalizeStr(document.getElementById('filterItem').value);
+      const listToDisplay = fItem ? sorted : sorted.slice(0, 20);
+
+      document.getElementById('topItensCount').innerText = fItem 
+        ? `Exibindo ${listToDisplay.length} item(ns) consolidado(s)` 
+        : `Exibindo Top ${listToDisplay.length} de ${sorted.length} itens consolidados`;
+
+      const rows = listToDisplay.map(d => {
+        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
+        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
+        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
+
+        return `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="py-3 px-3 font-semibold text-black">${d.filial}</td>
+            <td class="py-3 px-3"><span class="custom-bg-light border custom-border text-black px-2 py-0.5 rounded font-semibold text-[10px]">${d.tipo}</span></td>
+            <td class="py-3 px-3">
+              <div class="font-medium text-black">${d.linha}</div>
+              <div class="text-[10px] text-gray-500">${d.familia}</div>
+            </td>
+            <td class="py-3 px-3 font-medium text-black max-w-xs truncate" title="${d.itemStr}">${d.itemStr}</td>
+            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
+            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
+            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rows.join('');
+    }
+
+    function renderLinhasTable(data) {
+      const tbody = document.getElementById('tableBodyLinhas');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-gray-400">Nenhum registro.</td></tr>`;
+        return;
+      }
+
+      const map = {};
+      data.forEach(d => {
+        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || 'Sem Linha';
+        if (!map[linha]) {
+          map[linha] = { l25: 0, l26: 0, v25: 0, v26: 0, mc: 0 };
+        }
+        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        const v25 = getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        const v26 = getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        const mc = getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+
+        map[linha].l25 += l25;
+        map[linha].l26 += l26;
+        map[linha].v25 += v25;
+        map[linha].v26 += v26;
+        map[linha].mc += mc;
+      });
+
+      const sorted = Object.entries(map).sort((a, b) => b[1].l26 - a[1].l26);
+
+      const rows = sorted.map(([linha, val]) => {
+        const vLiq = val.l25 > 0 ? ((val.l26 - val.l25) / val.l25) * 100 : 0;
+        const vVol = val.v25 > 0 ? ((val.v26 - val.v25) / val.v25) * 100 : 0;
+        const mcPct = val.l26 > 0 ? (val.mc / val.l26) * 100 : 0;
+
+        return `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="py-3 px-3 font-bold text-black">${linha}</td>
+            <td class="py-3 px-3 text-right">${formatCurr(val.l25)}</td>
+            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(val.l26)}</td>
+            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${val.v25.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${val.v26.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rows.join('');
+    }
+
+    function renderFamiliasTable(data) {
+      const tbody = document.getElementById('tableBodyFamilias');
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum registro.</td></tr>`;
+        return;
+      }
+
+      const map = {};
+      data.forEach(d => {
+        const familia = getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false) || 'Sem Família';
+        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || '-';
+
+        if (!map[familia]) {
+          map[familia] = { linha, l25: 0, l26: 0, v25: 0, v26: 0, mc: 0 };
+        }
+        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        const v25 = getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        const v26 = getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        const mc = getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+
+        map[familia].l25 += l25;
+        map[familia].l26 += l26;
+        map[familia].v25 += v25;
+        map[familia].v26 += v26;
+        map[familia].mc += mc;
+      });
+
+      const sorted = Object.entries(map).sort((a, b) => b[1].l26 - a[1].l26).slice(0, 10);
+
+      const rows = sorted.map(([familia, val]) => {
+        const vLiq = val.l25 > 0 ? ((val.l26 - val.l25) / val.l25) * 100 : 0;
+        const vVol = val.v25 > 0 ? ((val.v26 - val.v25) / val.v25) * 100 : 0;
+        const mcPct = val.l26 > 0 ? (val.mc / val.l26) * 100 : 0;
+
+        return `
+          <tr class="hover:bg-amber-50/40 transition">
+            <td class="py-3 px-3 font-bold text-black">${familia}</td>
+            <td class="py-3 px-3 text-gray-500">${val.linha}</td>
+            <td class="py-3 px-3 text-right">${formatCurr(val.l25)}</td>
+            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(val.l26)}</td>
+            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${val.v25.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right font-medium text-black">${val.v26.toLocaleString('pt-BR')}</td>
+            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
+            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rows.join('');
+    }
+  </script>
+</body>
+</html>
