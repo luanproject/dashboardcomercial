@@ -209,71 +209,60 @@
       </div>
     </div>
 
-    <!-- SEÇÃO GRUPO ECONÔMICO -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border custom-border flex flex-col justify-between">
-        <div>
-          <h2 class="text-base font-bold text-black">📊 Faturamento por Cliente - Grupo</h2>
-          <p class="text-xs text-gray-500 mb-4">Comparativo de faturamento líquido (2025 vs 2026)</p>
-        </div>
-        <div class="h-80">
-          <canvas id="chartGrupoEconomico"></canvas>
-        </div>
+    <!-- GRÁFICO GRUPO ECONÔMICO -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
+      <div>
+        <h2 class="text-base font-bold text-black">📊 Faturamento por Cliente - Grupo</h2>
+        <p class="text-xs text-gray-500 mb-4">Comparativo dos maiores grupos econômicos (2025 vs 2026)</p>
       </div>
-
-      <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border custom-border overflow-hidden flex flex-col justify-between">
-        <div>
-          <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h2 class="text-base font-bold text-black">🏢 Ranking por Cliente - Grupo (2026)</h2>
-              <p class="text-xs text-gray-500">Desempenho consolidado agregando redes e filiais</p>
-            </div>
-            <div id="gruposCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-              0 grupos
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-                <tr>
-                  <th class="py-3 px-3">Cliente - Grupo</th>
-                  <th class="py-3 px-3 text-right">Liq. 2025</th>
-                  <th class="py-3 px-3 text-right">Liq. 2026</th>
-                  <th class="py-3 px-3 text-right">% Var Liq</th>
-                  <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-                  <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-                  <th class="py-3 px-3 text-right">% Var Vol</th>
-                  <th class="py-3 px-3 text-right">Preço Médio 26</th>
-                  <th class="py-3 px-3 text-right">% MC</th>
-                </tr>
-              </thead>
-              <tbody id="tableBodyGrupos" class="divide-y custom-border text-black">
-                <tr>
-                  <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div class="h-72">
+        <canvas id="chartGrupoEconomico"></canvas>
       </div>
     </div>
 
-    <!-- TABELA: RANKING POR CLIENTE INDIVIDUAL -->
+    <!-- RANKING UNIFICADO: CLIENTE INDIVIDUAL & GRUPO ECONÔMICO -->
     <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div class="p-5 border-b custom-border flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
-          <h2 class="text-base font-bold text-black">🏪 Ranking por Cliente Individual (2026)</h2>
-          <p class="text-xs text-gray-500">Desempenho detalhado de vendas por cliente/filial ordenados pelo faturamento</p>
+          <h2 class="text-base font-bold text-black flex items-center gap-2">👑 Ranking de Clientes & Grupos Econômicos</h2>
+          <p class="text-xs text-gray-500">Alterne entre a visão por Grupo Econômico ou por Cliente Individual</p>
         </div>
-        <div id="clientesCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-          0 clientes
+        
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Toggle Modo de Visualização -->
+          <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+            <button id="btnModeIndividual" onclick="setRankingMode('individual')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm flex items-center gap-1.5">
+              👤 Cliente Individual
+            </button>
+            <button id="btnModeGrupo" onclick="setRankingMode('grupo')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition flex items-center gap-1.5">
+              🏢 Grupo Econômico
+            </button>
+          </div>
+
+          <!-- Toggle Ordenação -->
+          <div class="flex items-center gap-2 text-xs text-gray-600 font-medium">
+            <span>Ordenar por:</span>
+            <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+              <button id="btnSortFaturamento" onclick="setRankingSort('faturamento')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm">
+                Faturamento (R$)
+              </button>
+              <button id="btnSortVolume" onclick="setRankingSort('volume')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition">
+                Volume (LT)
+              </button>
+            </div>
+          </div>
+
+          <div id="unifiedRankingCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
+            0 registros
+          </div>
         </div>
       </div>
+
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
             <tr>
-              <th class="py-3 px-3">Cliente</th>
+              <th id="thRankingColName" class="py-3 px-3">Cliente</th>
               <th class="py-3 px-3 text-right">Liq. 2025</th>
               <th class="py-3 px-3 text-right">Liq. 2026</th>
               <th class="py-3 px-3 text-right">% Var Liq</th>
@@ -284,7 +273,7 @@
               <th class="py-3 px-3 text-right">% MC</th>
             </tr>
           </thead>
-          <tbody id="tableBodyClientes" class="divide-y custom-border text-black">
+          <tbody id="tableBodyUnifiedRanking" class="divide-y custom-border text-black">
             <tr>
               <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
             </tr>
@@ -293,15 +282,26 @@
       </div>
     </div>
 
-    <!-- TABELA 1: TOP ITENS POR FATURAMENTO -->
+    <!-- TABELA 1: ITENS POR FATURAMENTO (COM DROPDOWN DE LIMITE) -->
     <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
       <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 class="text-base font-bold text-black">🏆 Itens por Faturamento (2026)</h2>
           <p class="text-xs text-gray-500">Principais itens consolidados ordenados pelo maior faturamento líquido em 2026</p>
         </div>
-        <div id="topItensCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-          0 itens
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 text-xs font-semibold text-gray-600">
+            <label for="selectTopItensLimit">Exibir:</label>
+            <select id="selectTopItensLimit" onchange="updateDashboard()" class="border custom-border p-1.5 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
+              <option value="5" selected>5 itens</option>
+              <option value="10">10 itens</option>
+              <option value="20">20 itens</option>
+              <option value="all">Todos os itens</option>
+            </select>
+          </div>
+          <div id="topItensCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
+            0 itens
+          </div>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -330,62 +330,65 @@
       </div>
     </div>
 
-    <!-- TABELA 2: DESEMPENHO DAS LINHAS COMERCIAIS -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border">
-        <h2 class="text-base font-bold text-black">📊 Desempenho por Linha Comercial</h2>
-        <p class="text-xs text-gray-500">Consolidado de faturamento, volume e margem % por linha comercial</p>
+    <!-- SEÇÃO DUPLA: LINHAS COMERCIAIS & TOP 10 FAMÍLIAS LADO A LADO -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- TABELA 2: DESEMPENHO DAS LINHAS COMERCIAIS -->
+      <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+        <div class="p-5 border-b custom-border">
+          <h2 class="text-base font-bold text-black">📊 Desempenho por Linha Comercial</h2>
+          <p class="text-xs text-gray-500">Consolidado de faturamento, volume e margem % por linha comercial</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+              <tr>
+                <th class="py-3 px-3">Linha Comercial</th>
+                <th class="py-3 px-3 text-right">Liq. 2025</th>
+                <th class="py-3 px-3 text-right">Liq. 2026</th>
+                <th class="py-3 px-3 text-right">% Var Liq</th>
+                <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+                <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+                <th class="py-3 px-3 text-right">% Var Vol</th>
+                <th class="py-3 px-3 text-right">% MC</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyLinhas" class="divide-y custom-border text-black">
+              <tr>
+                <td colspan="8" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Linha Comercial</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyLinhas" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="8" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- TABELA 3: TOP 10 FAMÍLIAS COMERCIAIS -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border">
-        <h2 class="text-base font-bold text-black">⭐ Top 10 Famílias Comerciais</h2>
-        <p class="text-xs text-gray-500">As 10 maiores famílias em faturamento em 2026</p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Família Comercial</th>
-              <th class="py-3 px-3">Linha Pertencente</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyFamilias" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- TABELA 3: TOP 10 FAMÍLIAS COMERCIAIS -->
+      <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
+        <div class="p-5 border-b custom-border">
+          <h2 class="text-base font-bold text-black">⭐ Top 10 Famílias Comerciais</h2>
+          <p class="text-xs text-gray-500">As 10 maiores famílias em faturamento em 2026</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
+              <tr>
+                <th class="py-3 px-3">Família Comercial</th>
+                <th class="py-3 px-3">Linha Pertencente</th>
+                <th class="py-3 px-3 text-right">Liq. 2025</th>
+                <th class="py-3 px-3 text-right">Liq. 2026</th>
+                <th class="py-3 px-3 text-right">% Var Liq</th>
+                <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
+                <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
+                <th class="py-3 px-3 text-right">% Var Vol</th>
+                <th class="py-3 px-3 text-right">% MC</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyFamilias" class="divide-y custom-border text-black">
+              <tr>
+                <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -395,6 +398,10 @@
     let rawData = [];
     let chartInstances = {};
     const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/luanproject/dashboardcomercial/main/dados.xls';
+
+    // Estados do Ranking Unificado
+    let currentRankingMode = 'individual'; // 'individual' ou 'grupo'
+    let currentRankingSort = 'faturamento'; // 'faturamento' ou 'volume'
 
     function normalizeStr(str) {
       if (str === null || str === undefined) return '';
@@ -478,7 +485,7 @@
       return grp;
     }
 
-    // Carregamento Automatizado com Tratamento Avançado de CORS e Binary Stream
+    // Carregamento Automatizado
     async function loadFromGitHub() {
       const lastUpdateEl = document.getElementById('lastUpdateText');
       const retryBtn = document.getElementById('btnRetryFetch');
@@ -674,6 +681,41 @@
       return 99;
     }
 
+    // Funções do Ranking Unificado
+    function setRankingMode(mode) {
+      currentRankingMode = mode;
+      
+      const btnInd = document.getElementById('btnModeIndividual');
+      const btnGrp = document.getElementById('btnModeGrupo');
+      
+      if (mode === 'individual') {
+        btnInd.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm flex items-center gap-1.5";
+        btnGrp.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition flex items-center gap-1.5";
+      } else {
+        btnGrp.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm flex items-center gap-1.5";
+        btnInd.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition flex items-center gap-1.5";
+      }
+
+      updateDashboard();
+    }
+
+    function setRankingSort(sort) {
+      currentRankingSort = sort;
+      
+      const btnFat = document.getElementById('btnSortFaturamento');
+      const btnVol = document.getElementById('btnSortVolume');
+      
+      if (sort === 'faturamento') {
+        btnFat.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm";
+        btnVol.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition";
+      } else {
+        btnVol.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#1693a5] text-white shadow-sm";
+        btnFat.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-black transition";
+      }
+
+      updateDashboard();
+    }
+
     function updateDashboard() {
       const data = getFilteredData();
 
@@ -767,9 +809,7 @@
       document.getElementById('kpiMBPct').innerText = `${avgMbPct.toFixed(1)}%`;
 
       renderCharts(data);
-      
-      renderGruposTable(data);
-      renderClientesTable(data);
+      renderUnifiedRankingTable(data);
       renderTopItensTable(data);
       renderLinhasTable(data);
       renderFamiliasTable(data);
@@ -907,34 +947,59 @@
       });
     }
 
-    function renderGruposTable(data) {
-      const tbody = document.getElementById('tableBodyGrupos');
+    // Renderizar Tabela do Ranking Unificado
+    function renderUnifiedRankingTable(data) {
+      const tbody = document.getElementById('tableBodyUnifiedRanking');
+      const thColName = document.getElementById('thRankingColName');
+      const countEl = document.getElementById('unifiedRankingCount');
+
+      if (!tbody) return;
+
       if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum grupo encontrado.</td></tr>`;
-        document.getElementById('gruposCount').innerText = `Exibindo 0 grupos`;
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum registro encontrado.</td></tr>`;
+        countEl.innerText = `0 registros`;
         return;
       }
+
+      const isGrupo = currentRankingMode === 'grupo';
+      const isVolSort = currentRankingSort === 'volume';
+
+      thColName.innerText = isGrupo ? 'Cliente - Grupo' : 'Cliente';
 
       const grouped = {};
 
       data.forEach(d => {
-        const grpStr = getGrupoEconomico(d);
-
-        if (!grouped[grpStr]) {
-          grouped[grpStr] = { grpStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
+        let key = '';
+        if (isGrupo) {
+          key = getGrupoEconomico(d);
+        } else {
+          const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
+          const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
+          key = cod && nome ? `${cod} - ${nome}` : (nome || cod || 'CLIENTE NÃO IDENTIFICADO');
         }
 
-        grouped[grpStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grouped[grpStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        grouped[grpStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        grouped[grpStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        grouped[grpStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
+        if (!grouped[key]) {
+          grouped[key] = { keyName: key, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
+        }
+
+        grouped[key].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
+        grouped[key].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
+        grouped[key].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
+        grouped[key].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
+        grouped[key].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
       });
 
-      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
-      document.getElementById('gruposCount').innerText = `Exibindo ${sorted.length} grupo(s)`;
+      const list = Object.values(grouped);
 
-      const rows = sorted.map(d => {
+      if (isVolSort) {
+        list.sort((a, b) => b.v26 - a.v26);
+      } else {
+        list.sort((a, b) => b.l26 - a.l26);
+      }
+
+      countEl.innerText = `Exibindo ${list.length} ${isGrupo ? 'grupo(s)' : 'cliente(s)'}`;
+
+      const rows = list.map(d => {
         const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
         const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
         const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
@@ -942,7 +1007,7 @@
 
         return `
           <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-semibold text-black">${d.grpStr}</td>
+            <td class="py-3 px-3 font-semibold text-black">${d.keyName}</td>
             <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
             <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
             <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
@@ -958,59 +1023,7 @@
       tbody.innerHTML = rows.join('');
     }
 
-    function renderClientesTable(data) {
-      const tbody = document.getElementById('tableBodyClientes');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum cliente encontrado.</td></tr>`;
-        document.getElementById('clientesCount').innerText = `Exibindo 0 clientes`;
-        return;
-      }
-
-      const grouped = {};
-
-      data.forEach(d => {
-        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
-        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
-        const cliStr = cod && nome ? `${cod} - ${nome}` : (nome || cod || 'CLIENTE NÃO IDENTIFICADO');
-
-        if (!grouped[cliStr]) {
-          grouped[cliStr] = { cliStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
-        }
-
-        grouped[cliStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grouped[cliStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        grouped[cliStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        grouped[cliStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        grouped[cliStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-      });
-
-      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
-      document.getElementById('clientesCount').innerText = `Exibindo ${sorted.length} cliente(s)`;
-
-      const rows = sorted.map(d => {
-        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
-        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
-        const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
-        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-semibold text-black">${d.cliStr}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${formatCurr(prcMed)}</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-
+    // Renderizar Top Itens (com Limite Dinâmico do Select)
     function renderTopItensTable(data) {
       const tbody = document.getElementById('tableBodyTopItens');
       if (data.length === 0) {
@@ -1050,12 +1063,17 @@
 
       const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
 
-      const fItem = normalizeStr(document.getElementById('filterItem').value);
-      const listToDisplay = fItem ? sorted : sorted.slice(0, 20);
+      const limitVal = document.getElementById('selectTopItensLimit') ? document.getElementById('selectTopItensLimit').value : '5';
+      
+      let listToDisplay = sorted;
+      if (limitVal !== 'all') {
+        const numLimit = parseInt(limitVal, 10) || 5;
+        listToDisplay = sorted.slice(0, numLimit);
+      }
 
-      document.getElementById('topItensCount').innerText = fItem 
-        ? `Exibindo ${listToDisplay.length} item(ns) consolidado(s)` 
-        : `Exibindo Top ${listToDisplay.length} de ${sorted.length} itens consolidados`;
+      document.getElementById('topItensCount').innerText = limitVal === 'all'
+        ? `Exibindo todos os ${sorted.length} itens` 
+        : `Exibindo ${listToDisplay.length} de ${sorted.length} itens`;
 
       const rows = listToDisplay.map(d => {
         const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
