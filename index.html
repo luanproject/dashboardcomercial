@@ -1,1192 +1,757 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Comercial</title>
-
-  <!-- Script de Autenticação / Senha -->
-  <script>
-    (function() {
-      var senhaCorreta = "dados1359";
-      var entrada = prompt("Digite a senha para acessar o Dashboard:");
-      if (entrada !== senhaCorreta) {
-        alert("Senha incorreta!");
-        document.write("<h2 style='color:red; text-align:center; margin-top:50px; font-family:sans-serif;'>Acesso Negado</h2>");
-        window.stop();
-      }
-    })();
-  </script>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #ffffff; color: #000000; }
-    .card-stat { transition: all 0.2s ease-in-out; }
-    .card-stat:hover { transform: translateY(-2px); }
-    .custom-border { border-color: #d8d8c0; }
-    .custom-bg-light { background-color: #f0f0d8; }
-    .custom-btn { background-color: #1693a5; color: #ffffff; }
-    .custom-btn:hover { background-color: #0f6875; }
-    .custom-teal-border { border-left-color: #1693a5; }
-    .custom-dark-border { border-left-color: #000000; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dashboard de Vendas</title>
+<style>
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --ink:#14212b; --ink2:#46586a; --muted:#6b7a89; --line:#dde3e9; --line2:#eef1f4;
+  --y0:#8fa1b3; --y1:#2a78d6; --accent:#2a78d6; --accent-soft:#e3eef9;
+  --good:#17785a; --good-soft:#dff1ea; --bad:#b83a2c; --bad-soft:#f9e4e0; --warn:#9a6700; --warn-soft:#fbefd0;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161c; --surface:#17212a; --ink:#e6edf3; --ink2:#a9b8c6; --muted:#8696a5; --line:#2a3743; --line2:#202c36;
+  --y0:#667a8d; --y1:#3987e5; --accent:#5aa0ee; --accent-soft:#1a2e3d;
+  --good:#4fc79c; --good-soft:#15332b; --bad:#ff8a78; --bad-soft:#3a1f1b; --warn:#e5b94a; --warn-soft:#352a10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#17212a; --ink:#e6edf3; --ink2:#a9b8c6; --muted:#8696a5; --line:#2a3743; --line2:#202c36;
+  --y0:#667a8d; --y1:#3987e5; --accent:#5aa0ee; --accent-soft:#1a2e3d;
+  --good:#4fc79c; --good-soft:#15332b; --bad:#ff8a78; --bad-soft:#3a1f1b; --warn:#e5b94a; --warn-soft:#352a10; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  padding:16px max(16px,env(safe-area-inset-right)) 32px max(16px,env(safe-area-inset-left))}
+h1,h2,h3,h4{margin:0;line-height:1.2}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+header h1{font-size:22px}
+header p{margin:4px 0 0;color:var(--ink2);font-size:13px}
+header>div{min-width:0}
+.icon-btn{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;min-width:40px;height:40px;cursor:pointer;font-size:16px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);flex:1 1 130px;min-width:110px}
+select,input[type=search]{font:14px system-ui,sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;height:40px;padding:0 10px;width:100%}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:thin}
+.tab{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink2);padding:0 14px;height:40px;border-radius:99px;cursor:pointer;font:600 13px system-ui,sans-serif;white-space:nowrap}
+.tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;min-width:0}
+.card h3{font-size:15px}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ch .srch{max-width:260px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.kpi .l{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-size:22px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi .s{font-size:12px;color:var(--ink2)}
+.num,td.r,th.r{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font:600 11.5px system-ui,sans-serif;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.up{background:var(--good-soft);color:var(--good)} .tag.dn{background:var(--bad-soft);color:var(--bad)}
+.tag.wr{background:var(--warn-soft);color:var(--warn)} .tag.neu{background:var(--line2);color:var(--ink2)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font:600 11px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th[data-sort]{cursor:pointer;user-select:none}
+th.on{color:var(--ink)}
+td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th.r,td.r{text-align:right;white-space:nowrap}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--line2)} tr.open td{background:var(--accent-soft)}
+td .sub{display:block;color:var(--muted);font-size:11.5px}
+.det td{background:var(--bg);padding:10px 12px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px}
+.fact span{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.more{display:block;margin:10px auto 0;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 16px;height:40px;border-radius:8px;cursor:pointer;font:600 13px system-ui,sans-serif}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--ink2);height:34px;padding:0 12px;cursor:pointer;font:600 12.5px system-ui,sans-serif}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:0 0 6px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font:11px system-ui,sans-serif}
+.chart .grid{stroke:var(--line2);stroke-width:1}
+.tt{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);padding:7px 10px;border-radius:8px;font-size:12px;max-width:240px;display:none;line-height:1.5}
+ul.ins{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+ul.ins li{display:flex;gap:9px;align-items:flex-start}
+.dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--accent)}
+.dot.g{background:var(--good)} .dot.r{background:var(--bad)} .dot.y{background:var(--warn)}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.cols2>.card{margin-bottom:0}
+details.cli{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+details.cli>summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+details.cli>summary::-webkit-details-marker{display:none}
+details.cli>summary .nm{font-weight:700;overflow-wrap:anywhere}
+details.cli>summary .sm{color:var(--ink2);font-size:12.5px;grid-column:1/-1}
+details.cli[open]>summary{border-bottom:1px solid var(--line)}
+.cbody{padding:14px}
+.bar{height:6px;background:var(--line2);border-radius:3px;overflow:hidden;grid-column:1/-1}
+.bar i{display:block;height:100%;background:var(--y1);border-radius:3px}
+h4.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 8px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills span{background:var(--line2);border-radius:99px;padding:3px 10px;font-size:12.5px}
+.note{font-size:12px;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted);margin-top:8px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;background:var(--surface)}
+.drop h2{font-size:18px;margin-bottom:8px}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;margin-top:12px;text-align:left}
+.btn{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
+.hbtns{display:flex;gap:8px;flex:none}
+.login{max-width:380px;margin:24px auto;display:flex;flex-direction:column;gap:12px;text-align:left;border-style:solid}
+.login h2,.login>p{text-align:center;margin:0}
+.login label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.login input:not([type=checkbox]){font:16px system-ui,sans-serif;height:44px;border:1px solid var(--line);border-radius:8px;padding:0 12px;background:var(--bg);color:var(--ink);width:100%}
+.login .chk{flex-direction:row;align-items:center;gap:8px;font-weight:400;font-size:13px;color:var(--ink2)}
+.login .chk input{width:18px;height:18px}
+.login .btn{border:0;font:600 15px system-ui,sans-serif;height:46px;cursor:pointer;margin-top:0}
+.login .btn:disabled{opacity:.6;cursor:wait}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.chip{display:inline-flex;gap:6px;align-items:center;border-radius:99px;padding:4px 10px;font-size:12px;background:var(--line2);color:var(--ink2)}
+.chip b{color:var(--ink);font-weight:600}
+.chip.up{background:var(--good-soft);color:var(--good)} .chip.dn{background:var(--bad-soft);color:var(--bad)}
+.chart text.up{fill:var(--good);font-weight:600} .chart text.dn{fill:var(--bad);font-weight:600}
+.chart text.star{fill:var(--ink);font-size:12px} .chart .band{fill:var(--accent-soft)}
+.lst{display:flex;flex-direction:column}
+.lrow{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);align-items:flex-start;font-size:13px}
+.lrow:last-child{border-bottom:0}
+.lrow .t{min-width:0;overflow-wrap:anywhere}
+.lrow .sub{display:block;color:var(--muted);font-size:11.5px}
+.lrow .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.filters label.full{flex:2 1 220px}
+@media (max-width:640px){.filters{display:grid;grid-template-columns:1fr 1fr}.filters label,.filters label.full{min-width:0}.filters label.full{grid-column:1/-1}}
+.pri{display:inline-block;font:600 11.5px system-ui,sans-serif;padding:3px 10px;border-radius:99px}
+.pri.alta{background:var(--bad-soft);color:var(--bad)} .pri.media{background:var(--warn-soft);color:var(--warn)}
+.plan{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.plan .pr{display:grid;grid-template-columns:84px minmax(0,1.8fr) minmax(0,1fr) minmax(0,1fr);gap:6px 14px;padding:10px 12px;border-bottom:1px solid var(--line2);align-items:start;font-size:13px}
+.plan .pr:last-child{border-bottom:0}
+.plan .ph{font:600 11px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line)}
+.plan small{display:none;color:var(--muted);font-weight:600;margin-right:4px}
+@media (max-width:640px){.plan .ph{display:none}.plan .pr{grid-template-columns:minmax(0,1fr)}.plan small{display:inline}}
+@media (max-width:640px){
+  body{padding-top:12px}
+  header h1{font-size:19px}
+  .hm{display:none}
+  .kpi .v{font-size:19px}
+  .ch .srch{max-width:none;width:100%}
+  .cols2{grid-template-columns:minmax(0,1fr)}
+}
+</style>
 </head>
-<body class="p-4 md:p-6">
-
-  <div class="max-w-[1700px] mx-auto space-y-6">
-    
-    <!-- Cabeçalho -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div>
-        <div class="flex items-center gap-3">
-          <span class="text-3xl">📊</span>
-          <div>
-            <h1 class="text-2xl font-bold text-black">Dashboard Comercial</h1>
-            <p class="text-xs md:text-sm text-gray-600">Análise por Filial, Grupo Econômico, Tecnologia (Líquida/Pó), Linhas/Família e Desempenho por Item</p>
-            <div class="flex items-center gap-3 mt-1">
-              <p id="lastUpdateText" class="text-xs text-[#1693a5] font-semibold">⏳ Aguarde Carregando dados... ⏳</p>
-              <button id="btnRetryFetch" onclick="loadFromGitHub()" class="hidden text-xs bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded text-gray-700 font-medium">🔄 Tentar Novamente</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Fallback de Upload Manual caso a rede bloqueie o GitHub -->
-      <div id="manualUploadContainer" class="hidden flex items-center gap-2">
-        <label class="text-xs text-gray-500 font-semibold">Se preferir, selecione o arquivo local:</label>
-        <input type="file" id="fileInput" accept=".xlsx, .xls" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#1693a5] file:text-white hover:file:bg-[#0f6875] cursor-pointer"/>
-      </div>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="ttl">Dashboard de Vendas</h1>
+      <p id="sub">Carregando dados…</p>
     </div>
-
-    <!-- Painel de Filtros Avançado -->
-    <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-500">Filtros de Pesquisa</h2>
-        <button id="btnResetFilters" class="text-xs font-semibold transition flex items-center gap-1 hover:underline" style="color: #1693a5;">
-          🔄 Limpar Todos os Filtros
-        </button>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">🔍 Pesquisar Item</label>
-          <input type="text" id="filterItem" placeholder="Ex: 601300061 ou Massa..." class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Cliente (Grupo)</label>
-          <select id="filterGrupo" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todos os Grupos</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Filial / Planta</label>
-          <select id="filterFilial" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todas as Filiais</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Líquida / Pó</label>
-          <select id="filterLiquidaPo" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todas</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Linha Comercial</label>
-          <select id="filterLinha" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todas as Linhas</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Família Comercial</label>
-          <select id="filterFamilia" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todas as Famílias</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Cliente</label>
-          <select id="filterCliente" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todos os Clientes</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Mês</label>
-          <select id="filterMes" class="w-full border custom-border p-2 rounded-lg text-xs custom-bg-light focus:bg-white outline-none focus:ring-2 focus:ring-[#1693a5]">
-            <option value="">Todos os Meses</option>
-          </select>
-        </div>
-      </div>
+    <div class="hbtns">
+      <button class="icon-btn" id="sair" hidden title="Sair e voltar para a tela de login" style="padding:0 12px;font:600 13px system-ui,sans-serif">Sair</button>
+      <button class="icon-btn" id="theme" title="Alternar tema claro/escuro" aria-label="Alternar tema" style="padding:0 12px;font:600 13px system-ui,sans-serif">Tema</button>
     </div>
+  </header>
+  <div id="loader"></div>
+  <main id="main" hidden>
+    <div class="filters" id="filters"></div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <section id="view"></section>
+    <p class="foot" id="foot"></p>
+  </main>
+</div>
+<div class="tt" id="tt"></div>
 
-    <!-- KPIs Principais -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Faturamento Líquido 2026</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <p id="kpiLiq2026" class="text-xl font-bold text-black">R$ 0,00</p>
-          <span id="kpiVarLiq" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
-        </div>
-        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiLiq2025" class="font-medium text-black">R$ 0,00</span></p>
-      </div>
+<script>
+(function(){
+'use strict';
+/* =====================================================================
+   1. LEITURA DA PLANILHA (.xlsx ou .csv) — roda no navegador, sem instalar nada
+   ===================================================================== */
+/* O site só procura o arquivo CRIPTOGRAFADO dados.enc (gerado por criptografar.html). Nenhuma planilha em texto aberto é publicada. */
 
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Volume Faturado 2026 (LT)</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <p id="kpiVol2026" class="text-xl font-bold text-black">0 LT</p>
-          <span id="kpiVarVol" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
-        </div>
-        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiVol2025" class="font-medium text-black">0 LT</span></p>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Preço Médio 2026</span>
-        <div class="flex items-baseline justify-between mt-1">
-          <p id="kpiPrcMed2026" class="text-xl font-bold text-black">R$ 0,00</p>
-          <span id="kpiVarPrcMed" class="text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0%</span>
-        </div>
-        <p class="text-[11px] text-gray-500 mt-2">2025: <span id="kpiPrcMed2025" class="font-medium text-black">R$ 0,00/LT</span></p>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Prazo Médio</span>
-        <p id="kpiPrazoMedio" class="text-xl font-bold text-black mt-1">0 dias</p>
-        <p class="text-[11px] text-gray-500 mt-2" id="kpiPrazoSub">Ponderado pelo faturamento</p>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-teal-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Margem Contribuição (R$)</span>
-        <p id="kpiMC" class="text-xl font-bold text-black mt-1">R$ 0,00</p>
-        <p class="text-[11px] text-gray-500 mt-2">Custo MAT + Frete: <span id="kpiCustosTotal" class="font-medium text-black">R$ 0,00</span></p>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border border-l-4 custom-dark-border card-stat">
-        <span class="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Margem Contribuição (%)</span>
-        <p id="kpiMCPct" class="text-xl font-bold text-black mt-1">0,0%</p>
-        <p class="text-[11px] text-gray-500 mt-2">Margem Bruta (% MB): <span id="kpiMBPct" class="font-medium text-black">0,0%</span></p>
-      </div>
-    </div>
-
-    <!-- Gráficos Comerciais & Produtos -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-        <h2 class="text-sm font-bold text-black mb-3">Tinta Líquida vs Tinta Pó (2026)</h2>
-        <div class="h-60">
-          <canvas id="chartTecnologia"></canvas>
-        </div>
-      </div>
-      
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-        <h2 class="text-sm font-bold text-black mb-3">Faturamento por Filial / Planta</h2>
-        <div class="h-60">
-          <canvas id="chartFilial"></canvas>
-        </div>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-        <h2 class="text-sm font-bold text-black mb-3">Faturamento por Linha Comercial</h2>
-        <div class="h-60">
-          <canvas id="chartLinhaComercial"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Top Itens e Evolução Mensal -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-        <h2 class="text-sm font-bold text-black mb-3">Top 10 Itens Mais Vendidos (2025 vs 2026)</h2>
-        <div class="h-64">
-          <canvas id="chartTopItens"></canvas>
-        </div>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl shadow-sm border custom-border">
-        <h2 class="text-sm font-bold text-black mb-3">Evolução Mensal (Líquido 2025 vs 2026)</h2>
-        <div class="h-64">
-          <canvas id="chartEvolucao"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- SEÇÃO GRUPO ECONÔMICO -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border custom-border flex flex-col justify-between">
-        <div>
-          <h2 class="text-base font-bold text-black">📊 Faturamento por Cliente - Grupo</h2>
-          <p class="text-xs text-gray-500 mb-4">Comparativo de faturamento líquido (2025 vs 2026)</p>
-        </div>
-        <div class="h-80">
-          <canvas id="chartGrupoEconomico"></canvas>
-        </div>
-      </div>
-
-      <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border custom-border overflow-hidden flex flex-col justify-between">
-        <div>
-          <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h2 class="text-base font-bold text-black">🏢 Ranking por Cliente - Grupo (2026)</h2>
-              <p class="text-xs text-gray-500">Desempenho consolidado agregando redes e filiais</p>
-            </div>
-            <div id="gruposCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-              0 grupos
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-                <tr>
-                  <th class="py-3 px-3">Cliente - Grupo</th>
-                  <th class="py-3 px-3 text-right">Liq. 2025</th>
-                  <th class="py-3 px-3 text-right">Liq. 2026</th>
-                  <th class="py-3 px-3 text-right">% Var Liq</th>
-                  <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-                  <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-                  <th class="py-3 px-3 text-right">% Var Vol</th>
-                  <th class="py-3 px-3 text-right">Preço Médio 26</th>
-                  <th class="py-3 px-3 text-right">% MC</th>
-                </tr>
-              </thead>
-              <tbody id="tableBodyGrupos" class="divide-y custom-border text-black">
-                <tr>
-                  <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TABELA: RANKING POR CLIENTE INDIVIDUAL -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 class="text-base font-bold text-black">🏪 Ranking por Cliente Individual (2026)</h2>
-          <p class="text-xs text-gray-500">Desempenho detalhado de vendas por cliente/filial ordenados pelo faturamento</p>
-        </div>
-        <div id="clientesCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-          0 clientes
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Cliente</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">Preço Médio 26</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyClientes" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TABELA 1: TOP ITENS POR FATURAMENTO -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 class="text-base font-bold text-black">🏆 Itens por Faturamento (2026)</h2>
-          <p class="text-xs text-gray-500">Principais itens consolidados ordenados pelo maior faturamento líquido em 2026</p>
-        </div>
-        <div id="topItensCount" class="text-xs font-semibold text-black custom-bg-light px-3 py-1.5 rounded-lg border custom-border">
-          0 itens
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Filial</th>
-              <th class="py-3 px-3">Tipo</th>
-              <th class="py-3 px-3">Linha / Família</th>
-              <th class="py-3 px-3">Item (Cód. - Descrição)</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyTopItens" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="11" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TABELA 2: DESEMPENHO DAS LINHAS COMERCIAIS -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border">
-        <h2 class="text-base font-bold text-black">📊 Desempenho por Linha Comercial</h2>
-        <p class="text-xs text-gray-500">Consolidado de faturamento, volume e margem % por linha comercial</p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Linha Comercial</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyLinhas" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="8" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TABELA 3: TOP 10 FAMÍLIAS COMERCIAIS -->
-    <div class="bg-white rounded-2xl shadow-sm border custom-border overflow-hidden">
-      <div class="p-5 border-b custom-border">
-        <h2 class="text-base font-bold text-black">⭐ Top 10 Famílias Comerciais</h2>
-        <p class="text-xs text-gray-500">As 10 maiores famílias em faturamento em 2026</p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="custom-bg-light text-black uppercase tracking-wider text-[11px] font-semibold border-b custom-border">
-            <tr>
-              <th class="py-3 px-3">Família Comercial</th>
-              <th class="py-3 px-3">Linha Pertencente</th>
-              <th class="py-3 px-3 text-right">Liq. 2025</th>
-              <th class="py-3 px-3 text-right">Liq. 2026</th>
-              <th class="py-3 px-3 text-right">% Var Liq</th>
-              <th class="py-3 px-3 text-right">Vol. 2025 (LT)</th>
-              <th class="py-3 px-3 text-right">Vol. 2026 (LT)</th>
-              <th class="py-3 px-3 text-right">% Var Vol</th>
-              <th class="py-3 px-3 text-right">% MC</th>
-            </tr>
-          </thead>
-          <tbody id="tableBodyFamilias" class="divide-y custom-border text-black">
-            <tr>
-              <td colspan="9" class="py-8 text-center text-gray-400">Nenhum dado carregado ainda.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    let rawData = [];
-    let chartInstances = {};
-    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/luanproject/dashboardcomercial/main/dados.xls';
-
-    function normalizeStr(str) {
-      if (str === null || str === undefined) return '';
-      return String(str).trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+async function inflateRaw(u8){
+  const ds=new DecompressionStream('deflate-raw');
+  const stream=new Blob([u8]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unzip(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf), out={};
+  let e=u8.length-22; while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;
+  if(e<0)throw new Error('Arquivo .xlsx inválido');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true);
+  const td=new TextDecoder();
+  for(let i=0;i<n;i++){
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl)); p+=46+nl+el+cl;
+    const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);
+    const raw=u8.subarray(ds,ds+csize);
+    out[name]=(()=>method===0?Promise.resolve(raw):inflateRaw(raw));
+  }
+  return out;
+}
+const xml=t=>new DOMParser().parseFromString(t,'application/xml');
+const colIdx=ref=>{let n=0;for(const ch of ref.replace(/\d/g,''))n=n*26+ch.charCodeAt(0)-64;return n-1};
+async function lerXlsx(buf){
+  const z=await unzip(buf), td=new TextDecoder();
+  const get=async n=>z[n]?td.decode(await z[n]()):null;
+  const ss=[], ssx=await get('xl/sharedStrings.xml');
+  if(ssx){for(const si of xml(ssx).getElementsByTagName('si')){
+    ss.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join(''))}}
+  const sheetName=Object.keys(z).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a,b)=>parseInt(a.match(/\d+/g).pop())-parseInt(b.match(/\d+/g).pop()))[0];
+  if(!sheetName)throw new Error('Nenhuma aba encontrada na planilha');
+  const doc=xml(await get(sheetName)), rows=[];
+  for(const r of doc.getElementsByTagName('row')){
+    const arr=[];
+    for(const c of r.getElementsByTagName('c')){
+      const t=c.getAttribute('t'), v=c.getElementsByTagName('v')[0], i=colIdx(c.getAttribute('r')||'A1');
+      let val='';
+      if(t==='s'&&v)val=ss[+v.textContent]??'';
+      else if(t==='inlineStr')val=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');
+      else if(t==='str'||t==='e')val=v?v.textContent:'';
+      else if(t==='b')val=v&&v.textContent==='1'?1:0;
+      else val=v&&v.textContent!==''?+v.textContent:'';
+      arr[i]=val;
     }
+    rows.push(arr);
+  }
+  return rows;
+}
+function lerCsv(texto){
+  const first=texto.split(/\r?\n/,1)[0], sep=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?';':',';
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<texto.length;i++){
+    const ch=texto[i];
+    if(q){ if(ch==='"'){ if(texto[i+1]==='"'){cur+='"';i++} else q=false } else cur+=ch }
+    else if(ch==='"')q=true;
+    else if(ch===sep){row.push(cur);cur=''}
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&texto[i+1]==='\n')i++; row.push(cur);cur='';rows.push(row);row=[] }
+    else cur+=ch;
+  }
+  if(cur!==''||row.length){row.push(cur);rows.push(row)}
+  return rows.filter(r=>r.some(x=>x!==''));
+}
 
-    function getVal(row, keys, isNum = true) {
-      const normalizedRow = {};
-      Object.keys(row).forEach(k => {
-        normalizedRow[normalizeStr(k)] = row[k];
-      });
+/* ---- transforma as linhas da planilha em registros padronizados ---- */
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const num=v=>{
+  if(typeof v==='number')return v;
+  if(v==null||v===''||v==='-')return 0;
+  let s=String(v).trim().replace(/\s|R\$/g,'');
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  const n=parseFloat(s);return isNaN(n)?0:n;
+};
+function padronizar(tabela){
+  const head=(tabela[0]||[]).map(norm), usadas=new Set();
+  const find=(...ops)=>{for(const o of ops){const i=head.findIndex(h=>typeof o==='string'?h===o:o.test(h));if(i>=0){usadas.add(i);return i}}return -1};
+  const cCli=find('clientematrizrazao',/^clientematriz/,'cliente','clientenome');
+  const cMes=find('mes'), cCod=find('clientecodigo','codigocliente');
+  const cItem=find('item'), cItemC=find('itemcodigo');
+  const cLinha=find('linhacomercial'), cFam=find('familiacomercial');
+  const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa');
+  const liq=[],qtd=[];
+  head.forEach((h,i)=>{let m=h.match(/^rliquido(\d{4})$/);if(m)liq.push([+m[1],i]);m=h.match(/^qtdlt(\d{4})$/);if(m)qtd.push([+m[1],i])});
+  liq.sort((a,b)=>a[0]-b[0]);qtd.sort((a,b)=>a[0]-b[0]);
+  const cMc=find('rmc');
+  const faltam=[];
+  if(cCli<0)faltam.push('Cliente - Matriz Razão');
+  if(cMes<0)faltam.push('Mês');
+  if(cFam<0&&cItem<0)faltam.push('Família Comercial ou Item');
+  if(liq.length<2)faltam.push('R$ Líquido <ano anterior> e R$ Líquido <ano atual> (ex.: R$ Líquido 2025 e R$ Líquido 2026)');
+  if(faltam.length)throw new Error('Colunas não encontradas na planilha: '+faltam.join('; ')+'.');
+  liq.slice(-2).forEach(x=>usadas.add(x[1]));qtd.slice(-2).forEach(x=>usadas.add(x[1]));
+  const [y0,i0]=liq[liq.length-2],[y1,i1]=liq[liq.length-1];
+  const q0=(qtd.find(x=>x[0]===y0)||[0,-1])[1], q1=(qtd.find(x=>x[0]===y1)||[0,-1])[1];
+  const txt=(r,i,d)=>i<0||r[i]===undefined||r[i]===''?d:String(r[i]).trim();
+  const rows=[];
+  for(let k=1;k<tabela.length;k++){
+    const r=tabela[k]; if(!r||!r.length)continue;
+    const m=MES.indexOf(txt(r,cMes,'').toLowerCase().slice(0,3));
+    const cli=txt(r,cCli,'');
+    if(m<0||!cli)continue;
+    rows.push({cli,cod:txt(r,cCod,''),mes:m,item:txt(r,cItem,'—'),itemc:txt(r,cItemC,''),linha:txt(r,cLinha,'—'),fam:txt(r,cFam,txt(r,cItem,'—')),
+      uf:txt(r,cUf,'—'),emp:txt(r,cEmp,'—'),a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc])});
+  }
+  if(!rows.length)throw new Error('A planilha não tem linhas válidas (confira as colunas Cliente e Mês).');
+  const ignoradas=(tabela[0]||[]).filter((_,i)=>!usadas.has(i)&&String(tabela[0][i]).trim()!=='');
+  return {rows,y0,y1,temMc:cMc>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length};
+}
 
-      for (let key of keys) {
-        let normKey = normalizeStr(key);
-        if (normalizedRow[normKey] !== undefined && normalizedRow[normKey] !== null && normalizedRow[normKey] !== '') {
-          if (!isNum) return String(normalizedRow[normKey]).trim();
-          let val = normalizedRow[normKey];
-          
-          if (typeof val === 'number') {
-            return isNaN(val) ? 0 : val;
-          }
+/* =====================================================================
+   2. ESTADO, FORMATAÇÃO E CÁLCULOS
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const BRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const BRL2=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
+const NUM=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+const fR=v=>BRL.format(Math.round(v));
+const fC=v=>{const a=Math.abs(v),s=v<0?'−':'';if(a>=1e6)return s+'R$ '+(a/1e6).toFixed(2).replace('.',',')+' mi';if(a>=1e4)return s+'R$ '+Math.round(a/1e3)+' mil';return s+fR(a)};
+const fD=v=>(v>=0?'+':'−')+fC(Math.abs(v));
+const fL=v=>NUM.format(Math.round(v))+' L';
+const fP=(x,d=1)=>(x*100).toFixed(d).replace('.',',')+'%';
+const pct=(a,b)=>a>0?b/a-1:null;
+const fV=p=>p==null?'novo':(p>=0?'+':'−')+Math.abs(p*100).toFixed(1).replace('.',',')+'%';
+const cls=p=>p==null?'neu':(p>=0.0005?'up':(p<=-0.0005?'dn':'neu'));
+const arrow=p=>p==null?'':(p>=0.0005?'▲ ':(p<=-0.0005?'▼ ':''));
+const vtag=(a,b)=>{if(a<=0&&b<=0)return '<span class="tag neu">—</span>';const p=pct(a,b);return `<span class="tag ${cls(p)}">${arrow(p)}${fV(p)}</span>`};
+const status=(a,b)=>{if(b>0&&a<=0)return['Novo','up'];if(a>0&&b<=0)return['Perdido','dn'];if(a>0&&b<a*0.9)return['Em queda','wr'];if(a>0&&b>a*1.1)return['Em alta','up'];if(b>0)return['Estável','neu'];return['—','neu']};
+const stag=(a,b)=>{const [t,c]=status(a,b);return `<span class="tag ${c}">${t}</span>`};
+const Z=()=>({a:0,b:0,qa:0,qb:0,mc:0});
+const add=(o,r)=>{o.a+=r.a;o.b+=r.b;o.qa+=r.qa;o.qb+=r.qb;o.mc+=r.mc;return o};
+const sum=rows=>rows.reduce(add,Z());
+function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let o=m.get(k);if(!o){o=Z();m.set(k,o)}add(o,r)}return m}
+const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
+const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-          if (typeof val === 'string') {
-            let cleaned = val.replace('R$', '')
-                             .replace('%', '')
-                             .replace(/dias?/gi, '')
-                             .replace(/d/gi, '')
-                             .trim();
-            
-            if (cleaned.includes(',') && !cleaned.includes('.')) {
-              cleaned = cleaned.replace(',', '.');
-            } else if (cleaned.includes('.') && cleaned.includes(',')) {
-              cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-            }
-            
-            let n = parseFloat(cleaned);
-            if (!isNaN(n)) return n;
+const S={tab:'res',emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
-            let match = val.match(/\d+(\.\d+)?/);
-            if (match) {
-              let parsed = parseFloat(match[0]);
-              if (!isNaN(parsed)) return parsed;
-            }
-          }
-          return 0;
-        }
-      }
-      return isNum ? 0 : '';
+/* =====================================================================
+   3. GRÁFICO MENSAL (SVG, responsivo)
+   ===================================================================== */
+const MESC=MES.map(m=>m[0].toUpperCase()+m.slice(1));
+function niceMax(v){if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e}
+function barPath(x,y,w,h,r){r=Math.min(r,w/2,h);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`}
+function drawChart(el,cfg){
+  const both=cfg.a!=null, st=cfg.hl&&cfg.ms.length>1?chartStats(cfg):null;
+  const W=Math.max(el.clientWidth||320,260),H=cfg.h||230,pl=46,pr=6,pt=st?(both?28:18):8,pb=24,n=cfg.ms.length;
+  const mx=niceMax(Math.max(1e-9,...(both?cfg.a:[0]),...cfg.b)), ih=H-pt-pb, step=(W-pl-pr)/n;
+  const bw=Math.max(4,Math.min(both?18:30,(step-8)/(both?2:1))), fmt=cfg.fmt;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.label)}">`;
+  for(let i=0;i<=4;i++){const y=pt+ih-ih*i/4;s+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${fmt(mx*i/4,true)}</text>`}
+  if(st&&both)s+=`<text x="${pl-6}" y="12" text-anchor="end">vs ${META.y0}</text>`;
+  cfg.ms.forEach((m,i)=>{
+    const cx=pl+step*i+step/2, ya=both?Math.max(0,cfg.a[i]):0, yb=Math.max(0,cfg.b[i]);
+    const ha=ih*ya/mx, hb=ih*yb/mx;
+    const bestA=!!st&&both&&i===st.bestA, bestB=!!st&&i===st.bestB, so=f=>f?' stroke="var(--ink)" stroke-width="1.5"':'';
+    if(bestA||bestB)s+=`<rect class="band" x="${pl+step*i+1}" y="${pt-2}" width="${step-2}" height="${ih+2}" rx="6"/>`;
+    if(both){
+      s+=`<path d="${barPath(cx-bw-1,pt+ih-ha,bw,ha,4)}" fill="var(--y0)"${so(bestA)}/><path d="${barPath(cx+1,pt+ih-hb,bw,hb,4)}" fill="var(--y1)"${so(bestB)}/>`;
+      if(bestA)s+=`<text class="star" text-anchor="middle" x="${cx-bw/2-1}" y="${pt+ih-ha-4}">★</text>`;
+      if(bestB)s+=`<text class="star" text-anchor="middle" x="${cx+bw/2+1}" y="${pt+ih-hb-4}">★</text>`;
+      if(st){const p=pct(cfg.a[i],cfg.b[i]);if(p!=null&&Math.abs(p)>=0.0005)s+=`<text class="${p>=0?'up':'dn'}" x="${cx}" y="12" text-anchor="middle">${p>=0?'▲':'▼'}${step<46?'':' '}${step<46&&Math.abs(p)>=1?'99+':Math.abs(p*100).toFixed(0)}${step<46?'':'%'}</text>`}
+    }else{
+      s+=`<path d="${barPath(cx-bw/2,pt+ih-hb,bw,hb,4)}" fill="var(--y1)"${so(bestB)}/>`;
+      if(bestB)s+=`<text class="star" text-anchor="middle" x="${cx}" y="${pt+ih-hb-4}">★</text>`;
     }
+    s+=`<text x="${cx}" y="${H-7}" text-anchor="middle">${MESC[m]}</text>`;
+    s+=`<rect x="${pl+step*i}" y="${pt}" width="${step}" height="${ih+pb}" fill="transparent" data-i="${i}" class="hit"/>`;
+  });
+  s+='</svg>';
+  el.innerHTML=s;
+  const tt=$('#tt');
+  const show=(e,i)=>{
+    let h=`<b>${MESC[cfg.ms[i]]}</b><br>`;
+    if(both){const p=pct(cfg.a[i],cfg.b[i]);h+=`${META.y0}: ${fmt(cfg.a[i])}<br>${META.y1}: ${fmt(cfg.b[i])}<br>${p==null?'—':fV(p)+' vs '+META.y0}`}
+    else h+=`${META.y1}: ${fmt(cfg.b[i])}`+(cfg.extra?'<br>'+cfg.extra(i):'');
+    tt.innerHTML=h;tt.style.display='block';
+    const w=tt.offsetWidth,x=Math.min(Math.max(8,e.clientX+12),innerWidth-w-8),y=Math.max(8,e.clientY-tt.offsetHeight-12);
+    tt.style.left=x+'px';tt.style.top=y+'px';
+  };
+  el.querySelectorAll('.hit').forEach(r=>{
+    r.addEventListener('pointermove',e=>show(e,+r.dataset.i));
+    r.addEventListener('pointerdown',e=>show(e,+r.dataset.i));
+    r.addEventListener('pointerleave',()=>tt.style.display='none');
+  });
+}
+/* destaques do gráfico: melhor mês de cada ano, maior alta e maior queda mês a mês */
+function chartStats(cfg){
+  const both=cfg.a!=null, arg=arr=>arr.reduce((bi,v,i)=>v>arr[bi]?i:bi,0);
+  let up=-1,dn=-1,pu=-Infinity,pd=Infinity;
+  if(both)cfg.b.forEach((v,i)=>{const p=pct(cfg.a[i],v);if(p==null)return;if(p>pu){pu=p;up=i}if(p<pd){pd=p;dn=i}});
+  return {bestA:both?arg(cfg.a):-1,bestB:arg(cfg.b),up,dn,pu,pd};
+}
+function chips(cfg){
+  const st=chartStats(cfg),f=v=>cfg.fmt(v),both=cfg.a!=null,m=i=>MESC[cfg.ms[i]];
+  let h='<div class="chips">';
+  if(both)h+=`<span class="chip"><b>★ Melhor mês ${META.y0}</b> ${m(st.bestA)} · ${f(cfg.a[st.bestA])}</span>`;
+  h+=`<span class="chip"><b>★ Melhor mês ${META.y1}</b> ${m(st.bestB)} · ${f(cfg.b[st.bestB])}</span>`;
+  if(both&&st.up>=0&&st.pu>0)h+=`<span class="chip up">Maior alta: ${m(st.up)} ${fV(st.pu)}</span>`;
+  if(both&&st.dn>=0&&st.pd<0)h+=`<span class="chip dn">Maior queda: ${m(st.dn)} ${fV(st.pd)}</span>`;
+  return h+'</div>';
+}
+function chartBox(id,cfg,legend){
+  CHARTS[id]=cfg;
+  return `${legend?`<div class="leg"><span><i style="background:var(--y0)"></i>${META.y0}</span><span><i style="background:var(--y1)"></i>${META.y1}</span></div>`:''}${cfg.hl&&cfg.ms.length>1?chips(cfg):''}<div class="chart" data-chart="${id}"></div>`;
+}
+function monthSeries(rows){
+  const ms=[];for(let m=S.m0;m<=S.m1;m++)if(META.months.includes(m))ms.push(m);
+  const g=group(rows,r=>r.mes);
+  return {ms,t:ms.map(m=>g.get(m)||Z())};
+}
 
-    function getGrupoEconomico(d) {
-      let grp = getVal(d, ['Grupo Econômico', 'Grupo Economico', 'Grupo Econômico / Rede', 'Grupo', 'Rede'], false);
-      if (!grp) {
-        let nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
-        if (nome) {
-          grp = nome.replace(/^\d+\s*[-_]\s*/, '').trim();
-        } else {
-          grp = 'OUTROS / SEM GRUPO';
-        }
-      }
+/* =====================================================================
+   4. TABELA DE RANKING (busca, ordenação, detalhe por cliente)
+   ===================================================================== */
+function rankCard(id,title,entries,keyFn,opt={}){
+  TABLES[id]={entries,keyFn,opt,total:C.tot};
+  S.sort[id]=S.sort[id]||{k:'b',d:-1};
+  return `<div class="card"><div class="ch"><h3>${title}</h3>${opt.search?`<input class="srch" type="search" placeholder="Buscar…" data-q="${id}" value="${esc(S.q[id]||'')}" aria-label="Buscar">`:''}</div><div id="t-${id}"></div></div>`;
+}
+function sortVal(e,k,T){
+  switch(k){case'name':return e.name.toLowerCase();case'a':return e.a;case'b':return e.b;
+    case'var':{const p=pct(e.a,e.b);return p==null?(e.b>0?1e9:-1e9):p}
+    case'share':return e.b;case'qb':return e.qb;case'mcp':return e.b>0?e.mc/e.b:-1;default:return e.b}}
+function drawTable(id){
+  const T=TABLES[id],el=$('#t-'+id);if(!el)return;
+  const so=S.sort[id],q=(S.q[id]||'').toLowerCase().trim();
+  let list=T.entries.filter(e=>(e.a!==0||e.b!==0)&&(!q||(e.name+' '+(e.sub||'')).toLowerCase().includes(q)));
+  list.sort((x,y)=>{const a=sortVal(x,so.k),b=sortVal(y,so.k);return (a<b?-1:a>b?1:0)*so.d});
+  const lim=S.lim[id]||25,shown=list.slice(0,lim),tb=T.total.b;
+  const th=(k,l,cl='')=>`<th class="${cl} ${so.k===k?'on':''}" data-sort="${id}|${k}">${l}${so.k===k?(so.d<0?' ↓':' ↑'):''}</th>`;
+  let h=`<div class="tw"><table><thead><tr>${th('name','Nome')}${th('a',META.y0,'r hm')}${th('b',META.y1,'r')}${th('var','Var.','r')}${th('share','% do total','r hm')}${META.temMc?th('mcp','MC %','r hm'):''}<th class="hm">Situação</th></tr></thead><tbody>`;
+  for(const e of shown){
+    const ek=id+'|'+e.key, op=S.exp.has(ek);
+    h+=`<tr class="row ${op?'open':''}" data-exp="${esc(ek)}"><td>${esc(e.name)}${e.sub?`<span class="sub">${esc(e.sub)}</span>`:''}</td><td class="r hm">${fC(e.a)}</td><td class="r">${fC(e.b)}</td><td class="r">${vtag(e.a,e.b)}</td><td class="r hm">${tb>0?fP(e.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${e.b>0?fP(e.mc/e.b):'—'}</td>`:''}<td class="hm">${stag(e.a,e.b)}</td></tr>`;
+    if(op)h+=`<tr class="det"><td colspan="7">${detalhe(T,e)}</td></tr>`;
+  }
+  if(!shown.length)h+=`<tr><td colspan="7" class="note">Nada encontrado.</td></tr>`;
+  h+='</tbody></table></div>';
+  if(list.length>lim)h+=`<button class="more" data-more="${id}">Mostrar mais (${list.length-lim})</button>`;
+  el.innerHTML=h;
+}
+function detalhe(T,e){
+  const rows=C.rows.filter(r=>T.keyFn(r)===e.key), byC=ents(group(rows,r=>r.cli)).sort((x,y)=>y.b-x.b||y.a-x.a);
+  let h=`<div class="facts"><div class="fact"><span>${META.y0}</span>${fR(e.a)}</div><div class="fact"><span>${META.y1}</span>${fR(e.b)}</div>`;
+  if(META.temQtd)h+=`<div class="fact"><span>Litros ${META.y1}</span>${fL(e.qb)}</div><div class="fact"><span>Preço médio ${META.y1}</span>${e.qb>0?BRL2.format(e.b/e.qb)+'/L':'—'}</div>`;
+  if(META.temMc)h+=`<div class="fact"><span>MC % ${META.y1}</span>${e.b>0?fP(e.mc/e.b):'—'} · ${fR(e.mc)}</div>`;
+  h+=`<div class="fact"><span>Situação</span>${stag(e.a,e.b)}</div></div>`;
+  h+=`<div class="tw"><table><thead><tr><th>Cliente</th><th class="r">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th></tr></thead><tbody>${byC.map(c=>`<tr><td>${esc(c.name)}</td><td class="r">${fC(c.a)}</td><td class="r">${fC(c.b)}</td><td class="r">${vtag(c.a,c.b)}</td></tr>`).join('')}</tbody></table></div>`;
+  return h;
+}
 
-      const aliasMap = {
-        'COMERCIAL R': 'COMERCIAL ROFE',
-        'DIST ADAUTO': 'DISTAC DISTRIBUIDORA',
-        'CONDOR ATAC': 'CONDOR ATACADISTA',
-        'RAMACON DISTRIBUIDORA DE MATERIAL PARA CONSTRUCAO EIRELI': 'RAMACON DISTRIBUIDORA',
-        'DISTRIBUIDORA MAIA DE MATERIAL DE CONSTRUCAO LTDA': 'NILO MAIA'
-      };
+/* =====================================================================
+   5. INSIGHTS
+   ===================================================================== */
+const nomes=(arr,n=3)=>arr.slice(0,n).map(x=>esc(x.name)).join(', ');
+function insightsCarteira(){
+  const t=C.tot, ls=[], cl=ents(group(C.rows,r=>r.cli)).sort((x,y)=>y.b-x.b);
+  const p=pct(t.a,t.b);
+  if(t.a>0)ls.push(li(p>=0?'g':'r',`Receita líquida <b>${fV(p)}</b> sobre ${META.y0} (${fD(t.b-t.a)}), de ${fC(t.a)} para ${fC(t.b)}.`));
+  if(cl.length>1){
+    const top=cl.slice(0,Math.min(3,cl.length)),sh=top.reduce((s,x)=>s+x.b,0)/(t.b||1);
+    ls.push(li(sh>0.8?'y':'',`<b>${top.length} clientes</b> (${nomes(top,top.length)}) concentram <b>${fP(sh)}</b> da receita de ${META.y1}.`));
+    const dd=[...cl].sort((x,y)=>(y.b-y.a)-(x.b-x.a)), up=dd[0], dn=dd[dd.length-1];
+    if(up.b-up.a>0)ls.push(li('g',`Maior crescimento: <b>${esc(up.name)}</b> (${fD(up.b-up.a)}).`));
+    if(dn.b-dn.a<0)ls.push(li('r',`Maior queda: <b>${esc(dn.name)}</b> (${fD(dn.b-dn.a)}).`));
+    const perd=cl.filter(x=>x.a>0&&x.b<=0);
+    if(perd.length)ls.push(li('r',`Sem compras em ${META.y1}: <b>${nomes(perd,5)}</b>.`));
+  }
+  const {ms,t:ser}=monthSeries(C.rows);
+  if(ms.length>1){
+    const idx=ser.map((o,i)=>i), best=idx.reduce((a,b)=>ser[b].b>ser[a].b?b:a), worst=idx.reduce((a,b)=>ser[b].b<ser[a].b?b:a);
+    const quedas=ser.filter(o=>o.b<o.a).length;
+    ls.push(li(quedas>ms.length/2?'y':'',`${quedas} de ${ms.length} meses ficaram abaixo de ${META.y0}. Melhor mês: <b>${MESC[ms[best]]}</b> (${fC(ser[best].b)}); mais fraco: <b>${MESC[ms[worst]]}</b> (${fC(ser[worst].b)}).`));
+    const l=ser.length-1;if(ser[l].a>0)ls.push(li(ser[l].b>=ser[l].a?'g':'r',`Último mês (${MESC[ms[l]]}): <b>${fV(pct(ser[l].a,ser[l].b))}</b> vs ${MESC[ms[l]]}/${String(META.y0).slice(2)} (${fC(ser[l].b)}).`));
+  }
+  const fam=ents(group(C.rows,r=>r.fam)), qd=fam.filter(x=>x.a>0).sort((x,y)=>(x.b-x.a)-(y.b-y.a)), al=[...qd].reverse();
+  if(qd.length&&qd[0].b-qd[0].a<0)ls.push(li('r',`Famílias que mais caíram: ${qd.slice(0,3).filter(x=>x.b<x.a).map(x=>`<b>${esc(x.name)}</b> (${fD(x.b-x.a)})`).join(', ')}.`));
+  if(al.length&&al[0].b-al[0].a>0)ls.push(li('g',`Famílias que mais cresceram: ${al.slice(0,3).filter(x=>x.b>x.a).map(x=>`<b>${esc(x.name)}</b> (${fD(x.b-x.a)})`).join(', ')}.`));
+  if(META.temQtd&&t.qa>0&&t.qb>0){const pa=t.a/t.qa,pb=t.b/t.qb;ls.push(li('',`Preço médio de <b>${BRL2.format(pb)}/L</b> (${fV(pct(pa,pb))} vs ${META.y0}). Volume ${fV(pct(t.qa,t.qb))}.`))}
+  if(META.temMc&&t.b>0&&cl.length>1){
+    const mm=cl.filter(x=>x.b>0).map(x=>({name:x.name,m:x.mc/x.b,v:x.b})).sort((x,y)=>y.m-x.m);
+    ls.push(li('',`MC de <b>${fP(t.mc/t.b)}</b> sobre a receita (${fC(t.mc)}). Maior margem: <b>${esc(mm[0].name)}</b> (${fP(mm[0].m)}); menor: <b>${esc(mm[mm.length-1].name)}</b> (${fP(mm[mm.length-1].m)}).`));
+  }
+  const aten=x=>/class="dot (r|y)"/.test(x);
+  return {f:ls.filter(x=>!aten(x)).join(''),a:ls.filter(aten).join('')};
+}
+const codLbl=(cli,cod)=>{if(!cod)return '';const u=((META.cods[cli]||[]).find(x=>x.cod===cod)||{}).uf;return `cód. ${cod}${u&&u!=='—'?' · '+u:''}`};
+/* blocos da tela inicial: pontos fortes/atenção, famílias, onde agir, oportunidades de mix e plano de ação */
+function blocosResumo(){
+  const rows=C.rows,all=C.rowsAll,y0=META.y0,y1=META.y1,ins=insightsCarteira(),SEP='\u0001';
+  const fam=ents(group(rows,r=>r.fam));
+  const quedas=fam.filter(x=>x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a)).slice(0,5);
+  const altas=fam.filter(x=>x.b>x.a).sort((x,y)=>(y.b-y.a)-(x.b-x.a)).slice(0,5);
+  const pares=ents(group(rows,r=>r.cli+SEP+r.cod+SEP+r.fam),k=>{const p=k.split(SEP);return {name:p[2],cli:p[0],cod:p[1]}});
+  const perdidos=pares.filter(x=>x.a>0&&x.b<=0).sort((x,y)=>y.a-x.a);
+  const emQueda=pares.filter(x=>x.a>0&&x.b>0&&x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a));
+  const sub=x=>esc(x.cli)+(x.cod?' · '+esc(codLbl(x.cli,x.cod)):'');
+  const rowF=(x,dn)=>`<div class="lrow"><span class="t">${esc(x.name)}</span><span class="v">${fC(x.a)} → ${fC(x.b)} <span class="tag ${dn?'dn':'up'}">${fD(x.b-x.a)}</span></span></div>`;
+  const rowP=x=>`<div class="lrow"><span class="t">${esc(x.name)}<span class="sub">${sub(x)}</span></span><span class="v">${fC(x.a)}</span></div>`;
+  const rowQ=x=>`<div class="lrow"><span class="t">${esc(x.name)}<span class="sub">${sub(x)}</span></span><span class="v">${fC(x.a)} → ${fC(x.b)}<span class="sub"><span class="tag dn">${fD(x.b-x.a)}</span></span></span></div>`;
+  const vazio='<p class="note">Nenhum.</p>';
+  const cardFam=`<div class="card"><h3 style="margin-bottom:8px">Famílias que mais caíram</h3><div class="lst">${quedas.map(x=>rowF(x,true)).join('')||vazio}</div><h3 style="margin:18px 0 8px">Famílias que mais cresceram</h3><div class="lst">${altas.map(x=>rowF(x,false)).join('')||vazio}</div></div>`;
+  const cardAcao=`<div class="card"><h3>Onde agir primeiro</h3><p class="note" style="margin:2px 0 0">Combinações de cliente × família.</p><h4 class="sec" style="margin-top:12px">Perdidos (maiores de ${y0})</h4><div class="lst">${perdidos.slice(0,6).map(rowP).join('')||vazio}</div><h4 class="sec">Em queda (maior perda em R$)</h4><div class="lst">${emQueda.slice(0,6).map(rowQ).join('')||vazio}</div></div>`;
+  /* oportunidades de mix */
+  const sel=S.cli?(r=>S.cli[0]==='m'?r.cli===S.cli.slice(2):r.cod===S.cli.slice(2)):null;
+  const base=sel?all.filter(r=>!sel(r)):all;
+  const ativos=[...group(base,r=>r.cli)].filter(([k,o])=>o.b>0).length;
+  const byFam=new Map();
+  group(base,r=>r.fam+SEP+r.cli).forEach((o,k)=>{if(o.b<=0)return;const f=k.split(SEP)[0];let e=byFam.get(f);if(!e){e={name:f,n:0,tot:0};byFam.set(f,e)}e.n++;e.tot+=o.b});
+  let mix;
+  if(!sel)mix=[...byFam.values()].filter(e=>e.n>=2&&ativos-e.n>=1).map(e=>({...e,sem:ativos-e.n,ticket:e.tot/e.n,pot:(ativos-e.n)*e.tot/e.n}));
+  else{const mine=new Set(fam.filter(x=>x.b>0).map(x=>x.name));mix=[...byFam.values()].filter(e=>!mine.has(e.name)).map(e=>({...e,sem:1,ticket:e.tot/e.n,pot:e.tot/e.n}))}
+  mix=mix.sort((x,y)=>y.pot-x.pot).slice(0,8);
+  const cardMix=`<div class="card"><h3>Oportunidades de mix (inferidas)</h3><p class="note" style="margin:2px 0 10px">${sel?'Famílias que os demais clientes compram e que este cliente ainda não compra. Potencial = ticket médio de quem compra.':'Famílias que pelo menos 2 clientes compram e que outros clientes ativos ainda não compram. Potencial = clientes sem a família × ticket médio de quem compra.'} Não é garantia de resultado.</p>${mix.length?`<div class="tw"><table><thead><tr><th>Família</th><th class="r">Compram</th>${sel?'':'<th class="r hm">Ativos sem a família</th>'}<th class="r hm">Ticket</th><th class="r">Potencial</th></tr></thead><tbody>${mix.map(e=>`<tr><td>${esc(e.name)}</td><td class="r">${e.n}</td>${sel?'':`<td class="r hm">${e.sem}</td>`}<td class="r hm">${fC(e.ticket)}</td><td class="r"><b>${fC(e.pot)}</b></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">Nenhuma oportunidade encontrada para os filtros atuais.</p>'}</div>`;
+  /* plano de ação */
+  const plano=[];
+  if(perdidos.length)plano.push({p:'alta',a:`Reativar famílias perdidas, começando por: ${perdidos.slice(0,3).map(x=>`${esc(x.name)} (${esc(x.cli)})`).join('; ')}`,e:`${perdidos.length} combinações cliente × família sem compra em ${y1}, somando ${fC(perdidos.reduce((s,x)=>s+x.a,0))} em ${y0}`,i:`Receita de ${y0} recuperável (fato)`});
+  const lblCod=k=>META.codMat[k]?`${esc(META.codMat[k])} (${esc(codLbl(META.codMat[k],k))})`:esc(k);
+  const cods=ents(group(rows,r=>r.cod||r.cli));
+  const cQueda=cods.filter(x=>x.a>0&&x.b>0&&x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a));
+  if(cQueda.length)plano.push({p:'alta',a:`Visitar clientes em queda: ${cQueda.slice(0,3).map(x=>lblCod(x.key)).join('; ')}`,e:`Queda somada de ${fD(cQueda.slice(0,6).reduce((s,x)=>s+x.b-x.a,0))} nos ${Math.min(6,cQueda.length)} maiores`,i:`Voltar ao patamar de ${y0}`});
+  if(mix.length)plano.push({p:'media',a:`Ofertar ${esc(mix[0].name)} aos clientes que ainda não compram`,e:sel?`${mix[0].n} ${mix[0].n>1?'clientes compram':'cliente compra'} a família`:`${mix[0].sem} clientes ativos sem a família; ${mix[0].n} compram`,i:`Inferido: ${fC(mix[0].pot)}`});
+  const cZero=cods.filter(x=>x.a>0&&x.b<=0).sort((x,y)=>y.a-x.a);
+  if(cZero.length)plano.push({p:'media',a:`Retomar ${cZero.length>1?'os clientes':'o cliente'} ${cZero.slice(0,3).map(x=>lblCod(x.key)).join('; ')}`,e:`Tinha ${fC(cZero.reduce((s,x)=>s+x.a,0))} em ${y0} e zerou`,i:`Receita de ${y0} recuperável`});
+  const lin=ents(group(rows,r=>r.linha)).filter(x=>x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a))[0];
+  if(lin&&lin.name!=='—')plano.push({p:'media',a:`Plano de recuperação da linha ${esc(lin.name)}`,e:`${fD(lin.b-lin.a)} contra ${y0}`,i:`Receita de ${y0} recuperável`});
+  const cardPlano=`<div class="card"><h3 style="margin-bottom:10px">Plano de ação sugerido</h3>${plano.length?`<div class="plan"><div class="pr ph"><span>Prioridade</span><span>Ação</span><span>Evidência</span><span>Impacto</span></div>${plano.map(x=>`<div class="pr"><span><span class="pri ${x.p}">${x.p==='alta'?'Alta':'Média'}</span></span><span>${x.a}</span><span><small>Evidência:</small>${x.e}</span><span><small>Impacto:</small>${x.i}</span></div>`).join('')}</div>`:'<p class="note">Sem ações sugeridas para os filtros atuais.</p>'}<p class="note" style="margin-top:8px">Sugestões geradas automaticamente a partir dos números; confirme com o que você sabe de cada cliente.</p></div>`;
+  return `<div class="cols2" style="margin-bottom:14px"><div class="card"><h3 style="margin-bottom:10px">Pontos fortes</h3><ul class="ins">${ins.f||'<li class="note">—</li>'}</ul></div><div class="card"><h3 style="margin-bottom:10px">Pontos de atenção</h3><ul class="ins">${ins.a||'<li class="note">Nada crítico encontrado.</li>'}</ul></div></div><div class="cols2" style="margin-bottom:14px">${cardFam}${cardAcao}</div>${cardMix}${cardPlano}`;
+}
+function insightsCliente(c,T){
+  const rows=C.rows.filter(r=>r.cli===c.name), ls=[], tot=C.totAll;
+  const sh1=tot.b>0?c.b/tot.b:0, sh0=tot.a>0?c.a/tot.a:0;
+  ls.push(li(cls(pct(c.a,c.b))==='up'?'g':cls(pct(c.a,c.b))==='dn'?'r':'',`Receita <b>${fV(pct(c.a,c.b))}</b> (${fD(c.b-c.a)}). Participa com <b>${fP(sh1)}</b> da carteira (${META.y0}: ${fP(sh0)}, ${(sh1-sh0>=0?'+':'−')+Math.abs((sh1-sh0)*100).toFixed(1).replace('.',',')} p.p.).`));
+  const {ms,t:ser}=monthSeries(rows);
+  if(ms.length>1){
+    const quedas=ser.filter(o=>o.b<o.a).length, l=ser.length-1;
+    ls.push(li(quedas>ms.length/2?'y':'',`Abaixo de ${META.y0} em <b>${quedas} de ${ms.length}</b> meses.`+(ser[l].a>0?` Último mês (${MESC[ms[l]]}): ${fV(pct(ser[l].a,ser[l].b))}.`:'')));
+  }
+  const fam=ents(group(rows,r=>r.fam)), perdidas=fam.filter(x=>x.a>0&&x.b<=0).sort((x,y)=>y.a-x.a), novas=fam.filter(x=>x.a<=0&&x.b>0).sort((x,y)=>y.b-x.b);
+  const queda=fam.filter(x=>x.a>0&&x.b>0&&x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a)), alta=fam.filter(x=>x.a>0&&x.b>x.a).sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+  if(perdidas.length)ls.push(li('r',`<b>${perdidas.length}</b> ${perdidas.length>1?'famílias deixaram':'família deixou'} de ser compradas (${fC(perdidas.reduce((s,x)=>s+x.a,0))} em ${META.y0}). Maiores: ${nomes(perdidas)}.`));
+  if(novas.length)ls.push(li('g',`<b>${novas.length}</b> ${novas.length>1?'famílias novas':'família nova'} em ${META.y1} (${fC(novas.reduce((s,x)=>s+x.b,0))}). Destaque: ${nomes(novas)}.`));
+  if(queda.length)ls.push(li('y',`Maior queda em família: <b>${esc(queda[0].name)}</b> (${fD(queda[0].b-queda[0].a)}, ${fV(pct(queda[0].a,queda[0].b))}).`));
+  if(alta.length)ls.push(li('g',`Maior alta em família: <b>${esc(alta[0].name)}</b> (${fD(alta[0].b-alta[0].a)}, ${fV(pct(alta[0].a,alta[0].b))}).`));
+  const topF=[...fam].sort((x,y)=>y.b-x.b).filter(x=>x.b>0);
+  if(topF.length&&c.b>0){const s3=topF.slice(0,3).reduce((s,x)=>s+x.b,0)/c.b;ls.push(li(topF[0].b/c.b>0.4?'y':'',`Principal família: <b>${esc(topF[0].name)}</b> (${fP(topF[0].b/c.b)} da compra). As 3 maiores somam <b>${fP(s3)}</b>; o cliente compra <b>${topF.length}</b> famílias.`))}
+  if(META.temQtd&&c.qa>0&&c.qb>0){const pa=c.a/c.qa,pb=c.b/c.qb,pm=tot.qb>0?tot.b/tot.qb:0;
+    ls.push(li('',`Preço médio <b>${BRL2.format(pb)}/L</b> (${fV(pct(pa,pb))} vs ${META.y0})`+(pm>0?`, ${pb>=pm?'acima':'abaixo'} da média da carteira (${BRL2.format(pm)}/L).`:'.')))}
+  if(META.temMc&&c.b>0){const m=c.mc/c.b,mm=tot.b>0?tot.mc/tot.b:0,d=(m-mm)*100;
+    ls.push(li(d<-2?'y':d>2?'g':'',`MC de <b>${fP(m)}</b> (${fC(c.mc)}), ${Math.abs(d)<0.05?'igual à':(d>=0?'+':'−')+Math.abs(d).toFixed(1).replace('.',',')+' p.p. vs'} média da carteira (${fP(mm)}).`))}
+  // oportunidades: famílias que a carteira compra e o cliente não
+  const fora=r=>r.cli!==c.name||(C.codSel&&r.cod!==C.codSel);
+  const outros=ents(group(C.rowsAll.filter(r=>fora(r)&&r.b>0),r=>r.fam),null), meus=new Map(fam.map(x=>[x.name,x]));
+  const nCli=new Map();C.rowsAll.forEach(r=>{if(fora(r)&&r.b>0){(nCli.get(r.fam)||nCli.set(r.fam,new Set()).get(r.fam)).add(r.cli)}});
+  const minC=META.clientes.length>=5?2:1;
+  const opp=outros.filter(x=>x.b>0&&(!meus.get(x.name)||meus.get(x.name).b<=0)&&(nCli.get(x.name)||new Set()).size>=minC).sort((x,y)=>y.b-x.b).slice(0,6);
+  if(opp.length)ls.push(li('y',`<b>Oportunidades de mix:</b> famílias vendidas aos demais clientes que este ainda não compra em ${META.y1}: ${opp.map(x=>`${esc(x.name)} <span class="note">(${fC(x.b)})</span>`).join(', ')}.`));
+  return {html:ls.join(''),fam,perdidas,queda,alta};
+}
 
-      const grpTrim = grp.trim();
-      if (aliasMap[grpTrim]) {
-        return aliasMap[grpTrim];
-      }
-
-      for (let key in aliasMap) {
-        if (key.toLowerCase() === grpTrim.toLowerCase()) {
-          return aliasMap[key];
-        }
-      }
-
-      return grp;
+/* =====================================================================
+   6. TELAS
+   ===================================================================== */
+function kpi(l,v,s,tag){return `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${tag||''} ${s||''}</div></div>`}
+function vResumo(){
+  const t=C.tot,{ms,t:ser}=monthSeries(C.rows), cl=ents(group(C.rows,r=>r.cli)), n0=cl.filter(x=>x.a>0).length, n1=cl.filter(x=>x.b>0).length;
+  let h='<div class="kpis">';
+  h+=kpi(`Receita líquida ${META.y1}`,fC(t.b),`${META.y0}: ${fC(t.a)}`,vtag(t.a,t.b));
+  if(META.temQtd){h+=kpi(`Litros ${META.y1}`,fL(t.qb),`${META.y0}: ${fL(t.qa)}`,vtag(t.qa,t.qb));
+    h+=kpi(`Preço médio ${META.y1}`,t.qb>0?BRL2.format(t.b/t.qb)+'/L':'—',`${META.y0}: ${t.qa>0?BRL2.format(t.a/t.qa)+'/L':'—'}`,t.qa>0&&t.qb>0?vtag(t.a/t.qa,t.b/t.qb):'')}
+  if(META.temMc)h+=kpi(`MC % ${META.y1}`,t.b>0?fP(t.mc/t.b):'—',`margem de contribuição (${fC(t.mc)})`);
+  h+=kpi('Clientes com compras',`${n1}`,`${META.y0}: ${n0}`);
+  h+='</div>';
+  const opts=[['b','Receita']].concat(META.temQtd?[['q','Litros'],['p','Preço médio']]:[]).concat(META.temMc?[['m','MC %']]:[]);
+  const mt=opts.some(o=>o[0]===S.metric)?S.metric:'b';
+  let cfg;
+  if(mt==='b')cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Receita líquida por mês'};
+  else if(mt==='q')cfg={ms,a:ser.map(o=>o.qa),b:ser.map(o=>o.qb),fmt:(v,ax)=>ax?(Math.abs(v)>=1000?NUM.format(Math.round(v/1000))+' mil':NUM.format(v)):fL(v),label:'Litros por mês'};
+  else if(mt==='p')cfg={ms,a:ser.map(o=>o.qa>0?o.a/o.qa:0),b:ser.map(o=>o.qb>0?o.b/o.qb:0),fmt:(v,ax)=>ax?v.toFixed(2).replace('.',','):BRL2.format(v),label:'Preço médio por mês'};
+  else cfg={ms,a:null,b:ser.map(o=>o.b>0?o.mc/o.b:0),fmt:v=>fP(v),label:'MC % por mês',extra:i=>`MC: ${fC(ser[i].mc)} sobre receita de ${fC(ser[i].b)}`};
+  cfg.hl=true;
+  h+=`<div class="card"><div class="ch"><h3>${mt==='b'?'Receita líquida por mês':mt==='q'?'Litros por mês':mt==='p'?'Preço médio por mês (R$/L)':'MC % (margem de contribuição) por mês'}</h3>`;
+  if(opts.length>1)h+=`<div class="seg">${opts.map(o=>`<button data-metric="${o[0]}" aria-pressed="${mt===o[0]}">${o[1]}</button>`).join('')}</div>`;
+  h+=`</div>${chartBox('main',cfg,mt!=='m')}${mt==='m'?`<p class="note">MC % = margem de contribuição ÷ receita líquida do mês. Existe apenas para ${META.y1}.</p>`:''}</div>`;
+  h+=blocosResumo();
+  const ordered=cl.sort((x,y)=>y.b-x.b), tb=C.totAll.b;
+  h+=`<div class="card"><h3 style="margin-bottom:10px">Clientes</h3><div class="tw"><table><thead><tr><th>Cliente</th><th class="r">${META.y1}</th><th class="r">Var.</th><th class="r hm">% total</th>${META.temMc?'<th class="r hm">MC %</th>':''}</tr></thead><tbody>${ordered.filter(x=>x.a||x.b).map(x=>`<tr class="row" data-go="${esc(x.name)}"><td>${esc(x.name)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td><td class="r hm">${tb>0?fP(x.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${x.b>0?fP(x.mc/x.b):'—'}</td>`:''}</tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:8px">Toque em um cliente para ver a análise completa.</p></div>`;
+  return h;
+}
+function vClientes(){
+  const cl=ents(group(C.rows,r=>r.cli)).filter(x=>x.a||x.b).sort((x,y)=>y.b-x.b), tb=C.totAll.b;
+  if(!cl.length)return '<div class="card">Sem dados para os filtros escolhidos.</div>';
+  const T={nClientes:cl.length};
+  return cl.map(c=>{
+    const op=S.open.has(c.name)||cl.length===1, ins=op?insightsCliente(c,T):null;
+    let body='';
+    if(op){
+      const rows=C.rows.filter(r=>r.cli===c.name),{ms,t:ser}=monthSeries(rows);
+      const cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Receita mensal de '+c.name,h:200,hl:true};
+      const cfgP={ms,a:ser.map(o=>o.qa>0?o.a/o.qa:0),b:ser.map(o=>o.qb>0?o.b/o.qb:0),fmt:(v,ax)=>ax?v.toFixed(2).replace('.',','):BRL2.format(v),label:'Preço médio mensal de '+c.name,h:200,hl:true};
+      const topF=ins.fam.filter(x=>x.a||x.b).sort((x,y)=>Math.max(y.a,y.b)-Math.max(x.a,x.b)).slice(0,12);
+      const ufs=ents(group(rows,r=>r.uf)).filter(x=>x.b>0).sort((x,y)=>y.b-x.b);
+      body=`<div class="cbody"><h4 class="sec" style="margin-top:0">Insights</h4><ul class="ins">${ins.html}</ul>
+      <h4 class="sec">Receita por mês</h4>${chartBox('c:'+c.name,cfg,true)}
+      ${META.temQtd?`<h4 class="sec">Preço médio por mês (R$/L)</h4>${chartBox('p:'+c.name,cfgP,true)}`:''}
+      <h4 class="sec">Principais famílias</h4><div class="tw"><table><thead><tr><th>Família</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th></tr></thead><tbody>${topF.map(f=>`<tr><td>${esc(f.name)}</td><td class="r hm">${fC(f.a)}</td><td class="r">${fC(f.b)}</td><td class="r">${vtag(f.a,f.b)}</td></tr>`).join('')}</tbody></table></div>
+      ${(()=>{const cs=ents(group(rows,r=>r.cod)).filter(x=>(x.a||x.b)&&x.key);return cs.length>1?`<h4 class="sec">Por código de cliente</h4><div class="tw"><table><thead><tr><th>Código</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temMc?'<th class="r hm">MC %</th>':''}</tr></thead><tbody>${cs.sort((x,y)=>y.b-x.b).map(x=>`<tr class="row" data-setcli="c:${esc(x.key)}"><td>${esc(x.key)}<span class="sub">${esc(((META.cods[c.name]||[]).find(y=>y.cod===x.key)||{}).uf||'')}</span></td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td>${META.temMc?`<td class="r hm">${x.b>0?fP(x.mc/x.b):'—'}</td>`:''}</tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:6px">Toque em um código para analisar só ele.</p>`:''})()}
+      ${ufs.length>1?`<h4 class="sec">Por estado</h4><div class="pills">${ufs.map(u=>`<span>${esc(u.name)} · ${fC(u.b)}</span>`).join('')}</div>`:''}</div>`;
     }
+    return `<details class="cli" data-cli="${esc(c.name)}" ${op?'open':''}><summary><span class="nm">${esc(c.name)}</span><span>${vtag(c.a,c.b)}</span><span class="sm"><b>${fC(c.b)}</b> em ${META.y1} · ${META.y0}: ${fC(c.a)} · ${tb>0?fP(c.b/tb):'—'} da carteira ${META.temMc&&c.b>0?'· MC '+fP(c.mc/c.b):''} · ${stag(c.a,c.b)}</span><span class="bar"><i style="width:${tb>0?Math.min(100,c.b/tb*100):0}%"></i></span></summary>${body}</details>`;
+  }).join('');
+}
+const vFam=()=>rankCard('fam','Famílias comerciais',ents(group(C.rows,r=>r.fam),k=>({sub:''})),r=>r.fam,{search:true});
+const vItem=()=>rankCard('item','Itens',ents(group(C.rows,r=>r.item+'§'+r.itemc),k=>({name:k.split('§')[0],sub:k.split('§')[1]})).map(e=>e),r=>r.item+'§'+r.itemc,{search:true});
+const vLinha=()=>rankCard('linha','Linha comercial',ents(group(C.rows,r=>r.linha)),r=>r.linha)+(META.emps.length>1?rankCard('emp','Empresa do grupo',ents(group(C.rows,r=>r.emp)),r=>r.emp):'');
+const vUf=()=>rankCard('uf','Estado',ents(group(C.rows,r=>r.uf)),r=>r.uf);
+function vBase(){
+  const n=DATA.rows.length;
+  return `<div class="card"><h3 style="margin-bottom:10px">Sobre os dados</h3><ul class="ins">
+  ${li('',`Arquivo lido: <b>${esc(META.arquivo)}</b>${META.modificado?` · atualizado em ${esc(META.modificado)}`:''}.`)}
+  ${li('',`<b>${NUM.format(n)}</b> linhas válidas, <b>${META.clientes.length}</b> clientes, <b>${META.months.length}</b> meses (${META.months.map(m=>MES[m]).join(', ')}).`)}
+  ${li('',`Receita = coluna <b>R$ Líquido</b>. Comparação: ${META.y1} contra ${META.y0}, mesmos meses.`)}
+  ${li('',`Linhas negativas (devoluções) ficam somadas: é isso que dá o líquido correto.`)}
+  ${li('',`As variações (%) e margens são <b>recalculadas</b> a partir dos valores em R$; as colunas de % da planilha não são usadas.`)}
+  ${META.temMc?li('',`MC (margem de contribuição) existe só para ${META.y1}; MC % = MC ÷ receita líquida de ${META.y1}.`):''}
+  ${li('',`Situação do cliente/família: <b>Novo</b> (sem compra em ${META.y0}), <b>Perdido</b> (sem compra em ${META.y1}), <b>Em queda</b> (&gt;10% abaixo), <b>Em alta</b> (&gt;10% acima), <b>Estável</b>.`)}
+  ${META.ignoradas.length?li('y',`Colunas da planilha que o dashboard <b>não usa</b>: ${META.ignoradas.map(esc).join(', ')}.`):''}
+  </ul></div>`;
+}
+const TABS=[['res','Resumo',vResumo],['cli','Clientes',vClientes],['fam','Famílias',vFam],['item','Itens',vItem],['linha','Linhas',vLinha],['uf','Estados',vUf],['base','Dados',vBase]];
 
-    // Carregamento Automatizado com Tratamento Avançado de CORS e Binary Stream
-    async function loadFromGitHub() {
-      const lastUpdateEl = document.getElementById('lastUpdateText');
-      const retryBtn = document.getElementById('btnRetryFetch');
-      const uploadManual = document.getElementById('manualUploadContainer');
-
-      lastUpdateEl.innerText = '⏳ Aguarde, carregando dados...⏳';
-      lastUpdateEl.className = 'text-xs text-[#1693a5] font-semibold';
-      retryBtn.classList.add('hidden');
-
-      try {
-        const response = await fetch(GITHUB_RAW_URL, { cache: "no-store" });
-        if (!response.ok) throw new Error(`Status HTTP: ${response.status}`);
-        
-        const blob = await response.blob();
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-          try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            
-            let wsname = workbook.SheetNames.find(s => normalizeStr(s) === 'dados');
-            if (!wsname) wsname = workbook.SheetNames[0];
-
-            const ws = workbook.Sheets[wsname];
-            rawData = XLSX.utils.sheet_to_json(ws, { defval: "" });
-
-            if (rawData.length === 0) {
-              lastUpdateEl.innerText = '⚠️ Planilha sem dados válidos no repositório.';
-              return;
-            }
-
-            const now = new Date();
-            const dataHoraStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            lastUpdateEl.innerText = `📅 Última atualização: ${dataHoraStr}`;
-
-            setupFilters();
-            updateDashboard();
-          } catch (err) {
-            console.error('Erro ao processar XLSX:', err);
-            showError('❌ Falha ao ler a planilha baixada.');
-          }
-        };
-
-        reader.readAsArrayBuffer(blob);
-
-      } catch (err) {
-        console.error('Erro no Fetch do GitHub:', err);
-        showError('❌ Erro ao carregar planilha.');
-      }
-
-      function showError(msg) {
-        lastUpdateEl.innerText = msg;
-        lastUpdateEl.className = 'text-xs text-red-600 font-semibold';
-        retryBtn.classList.remove('hidden');
-        uploadManual.classList.remove('hidden');
-      }
+/* =====================================================================
+   7. DESENHO DA PÁGINA
+   ===================================================================== */
+function drawFilters(){
+  const sel=(id,l,opts,val)=>`<label>${l}<select id="${id}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''}>${esc(o[1])}</option>`).join('')}</select></label>`;
+  let h='';
+  if(META.emps.length>1)h+=sel('f-emp','Empresa',[['','Todas']].concat(META.emps.map(x=>[x,x])),S.emp);
+  if(META.ufs.length>1)h+=sel('f-uf','Estado',[['','Todos']].concat(META.ufs.map(x=>[x,x])),S.uf);
+  if(META.clientes.length>1||META.codsTotal>META.clientes.length){
+    let o=`<option value="">Todos</option>`;
+    for(const c of META.clientes){
+      const cs=META.cods[c]||[];
+      if(cs.length>1){o+=`<optgroup label="${esc(c)}"><option value="m:${esc(c)}" ${S.cli==='m:'+c?'selected':''}>Todos os códigos</option>`+cs.map(x=>`<option value="c:${esc(x.cod)}" ${S.cli==='c:'+x.cod?'selected':''}>Cód. ${esc(x.cod)}${x.uf&&x.uf!=='—'?' · '+esc(x.uf):''}</option>`).join('')+'</optgroup>'}
+      else o+=`<option value="m:${esc(c)}" ${S.cli==='m:'+c?'selected':''}>${esc(c)}${cs[0]&&cs[0].cod?' · cód. '+esc(cs[0].cod):''}</option>`;
     }
-
-    // Processar arquivo enviado via upload manual
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        let wsname = workbook.SheetNames.find(s => normalizeStr(s) === 'dados');
-        if (!wsname) wsname = workbook.SheetNames[0];
-
-        const ws = workbook.Sheets[wsname];
-        rawData = XLSX.utils.sheet_to_json(ws, { defval: "" });
-
-        document.getElementById('lastUpdateText').innerText = `📂 Dados carregados via arquivo manual (${file.name})`;
-        document.getElementById('lastUpdateText').className = 'text-xs text-emerald-600 font-semibold';
-
-        setupFilters();
-        updateDashboard();
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    document.addEventListener('DOMContentLoaded', loadFromGitHub);
-
-    document.getElementById('btnResetFilters').addEventListener('click', () => {
-      document.getElementById('filterItem').value = '';
-      document.getElementById('filterGrupo').value = '';
-      document.getElementById('filterFilial').value = '';
-      document.getElementById('filterLiquidaPo').value = '';
-      document.getElementById('filterLinha').value = '';
-      document.getElementById('filterFamilia').value = '';
-      document.getElementById('filterCliente').value = '';
-      document.getElementById('filterMes').value = '';
-      updateDashboard();
-    });
-
-    function setupFilters() {
-      const grupos = [...new Set(rawData.map(d => getGrupoEconomico(d)))].filter(Boolean).sort();
-      const filiais = [...new Set(rawData.map(d => getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false)))].filter(Boolean).sort();
-      const liqPo = [...new Set(rawData.map(d => getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false)))].filter(Boolean).sort();
-      const linhas = [...new Set(rawData.map(d => getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false)))].filter(Boolean).sort();
-      const familias = [...new Set(rawData.map(d => getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false)))].filter(Boolean).sort();
-      
-      const clientes = [...new Set(rawData.map(d => {
-        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
-        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
-        return cod && nome ? `${cod} - ${nome}` : (nome || cod || '');
-      }))].filter(Boolean).sort();
-
-      const meses = [...new Set(rawData.map(d => getVal(d, ['Mês', 'mês', 'Mes'], false)))].filter(Boolean).sort((a, b) => getMonthRank(a) - getMonthRank(b));
-
-      fillSelect('filterGrupo', grupos);
-      fillSelect('filterFilial', filiais);
-      fillSelect('filterLiquidaPo', liqPo);
-      fillSelect('filterLinha', linhas);
-      fillSelect('filterFamilia', familias);
-      fillSelect('filterCliente', clientes);
-      fillSelect('filterMes', meses);
-
-      ['filterGrupo', 'filterFilial', 'filterLiquidaPo', 'filterLinha', 'filterFamilia', 'filterCliente', 'filterMes'].forEach(id => {
-        document.getElementById(id).onchange = updateDashboard;
-      });
-
-      document.getElementById('filterItem').oninput = updateDashboard;
-    }
-
-    function fillSelect(id, items) {
-      const select = document.getElementById(id);
-      const curr = select.value;
-      select.innerHTML = `<option value="">Todos</option>`;
-      items.forEach(item => {
-        select.innerHTML += `<option value="${item}">${item}</option>`;
-      });
-      select.value = curr;
-    }
-
-    function getFilteredData() {
-      const fItem = normalizeStr(document.getElementById('filterItem').value);
-      const fGrupo = document.getElementById('filterGrupo').value;
-      const fFilial = document.getElementById('filterFilial').value;
-      const fLiqPo = document.getElementById('filterLiquidaPo').value;
-      const fLinha = document.getElementById('filterLinha').value;
-      const fFamilia = document.getElementById('filterFamilia').value;
-      const fCliente = document.getElementById('filterCliente').value;
-      const fMes = document.getElementById('filterMes').value;
-
-      return rawData.filter(d => {
-        const grupo = getGrupoEconomico(d);
-        const filial = getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false);
-        const liqPo = getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false);
-        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false);
-        const familia = getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false);
-        
-        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
-        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
-        const cliStr = cod && nome ? `${cod} - ${nome}` : (nome || cod || '');
-        const mes = getVal(d, ['Mês', 'mês', 'Mes'], false);
-
-        const itemCod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
-        const itemDesc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
-        const itemSearchStr = normalizeStr(`${itemCod} ${itemDesc}`);
-
-        return (!fItem || itemSearchStr.includes(fItem)) &&
-               (!fGrupo || grupo === fGrupo) &&
-               (!fFilial || filial === fFilial) &&
-               (!fLiqPo || liqPo === fLiqPo) &&
-               (!fLinha || linha === fLinha) &&
-               (!fFamilia || familia === fFamilia) &&
-               (!fCliente || cliStr === fCliente) &&
-               (!fMes || mes === fMes);
-      });
-    }
-
-    function getMonthRank(m) {
-      const norm = normalizeStr(m);
-      if (norm.startsWith('jan')) return 1;
-      if (norm.startsWith('fev')) return 2;
-      if (norm.startsWith('mar')) return 3;
-      if (norm.startsWith('abr')) return 4;
-      if (norm.startsWith('mai')) return 5;
-      if (norm.startsWith('jun')) return 6;
-      if (norm.startsWith('jul')) return 7;
-      if (norm.startsWith('ago')) return 8;
-      if (norm.startsWith('set')) return 9;
-      if (norm.startsWith('out')) return 10;
-      if (norm.startsWith('nov')) return 11;
-      if (norm.startsWith('dez')) return 12;
-      
-      const num = parseInt(norm);
-      if (!isNaN(num) && num >= 1 && num <= 12) return num;
-      return 99;
-    }
-
-    function updateDashboard() {
-      const data = getFilteredData();
-
-      let liq2025 = 0, liq2026 = 0;
-      let vol2025 = 0, vol2026 = 0;
-      let mcRs = 0, custoMat = 0, custoGgf = 0;
-      let countMb = 0, totalMbPct = 0;
-      let countMc = 0, totalMcPct = 0;
-      
-      let somaPrazoPonderado26 = 0;
-      let somaPrazoPonderado25 = 0;
-      let somaPrazoSimples = 0;
-      let countPrazo = 0;
-
-      const prazoKeys = [
-        'Pz Med', 'Pz. Med', 'Pz.Med', 'PzMed',
-        'Prazo Médio (Dias)', 'Prazo Médio', 'Prazo Medio', 
-        'Prazo de Pagamento', 'Prazo medio (dias)', 'Prazo', 'PM'
-      ];
-
-      data.forEach(d => {
-        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        
-        liq2025 += l25;
-        liq2026 += l26;
-        vol2025 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        vol2026 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-        custoMat += getVal(d, ['R$ Custo MAT', 'custo matéria prima', 'Custo MAT']);
-        custoGgf += getVal(d, ['R$ Custo GGF', 'custo frete', 'Custo GGF']);
-
-        let mb = getVal(d, ['% MB', 'margem bruta', 'MB']);
-        if (mb) { totalMbPct += mb; countMb++; }
-
-        let mc = getVal(d, ['% MC', 'margem de contribuição em %', 'MC %']);
-        if (mc) { totalMcPct += mc; countMc++; }
-
-        let prazo = getVal(d, prazoKeys);
-        if (prazo > 0) {
-          somaPrazoPonderado26 += (prazo * l26);
-          somaPrazoPonderado25 += (prazo * l25);
-          somaPrazoSimples += prazo;
-          countPrazo++;
-        }
-      });
-
-      const varLiq = liq2025 > 0 ? ((liq2026 - liq2025) / liq2025) * 100 : 0;
-      const varVol = vol2025 > 0 ? ((vol2026 - vol2025) / vol2025) * 100 : 0;
-      const avgMcPct = liq2026 > 0 ? (mcRs / liq2026) * 100 : (countMc > 0 ? totalMcPct / countMc : 0);
-      const avgMbPct = countMb > 0 ? totalMbPct / countMb : 0;
-
-      const prcMed2025 = vol2025 > 0 ? liq2025 / vol2025 : 0;
-      const prcMed2026 = vol2026 > 0 ? liq2026 / vol2026 : 0;
-      const varPrcMed = prcMed2025 > 0 ? ((prcMed2026 - prcMed2025) / prcMed2025) * 100 : 0;
-      
-      let avgPrazo = 0;
-      let subtextPrazo = "Média simples dos itens";
-
-      if (liq2026 > 0 && somaPrazoPonderado26 > 0) {
-        avgPrazo = somaPrazoPonderado26 / liq2026;
-        subtextPrazo = "Ponderado pelo faturamento 2026";
-      } else if (liq2025 > 0 && somaPrazoPonderado25 > 0) {
-        avgPrazo = somaPrazoPonderado25 / liq2025;
-        subtextPrazo = "Ponderado pelo faturamento 2025";
-      } else if (countPrazo > 0) {
-        avgPrazo = somaPrazoSimples / countPrazo;
-        subtextPrazo = `Média simples (${countPrazo} registros)`;
-      } else {
-        subtextPrazo = "Nenhum prazo > 0 encontrado";
-      }
-
-      document.getElementById('kpiLiq2026').innerText = formatCurr(liq2026);
-      document.getElementById('kpiLiq2025').innerText = formatCurr(liq2025);
-      renderBadge('kpiVarLiq', varLiq);
-
-      document.getElementById('kpiVol2026').innerText = `${vol2026.toLocaleString('pt-BR')} LT`;
-      document.getElementById('kpiVol2025').innerText = `${vol2025.toLocaleString('pt-BR')} LT`;
-      renderBadge('kpiVarVol', varVol);
-
-      document.getElementById('kpiPrcMed2026').innerText = formatCurr(prcMed2026);
-      document.getElementById('kpiPrcMed2025').innerText = formatCurr(prcMed2025);
-      renderBadge('kpiVarPrcMed', varPrcMed);
-
-      document.getElementById('kpiPrazoMedio').innerText = `${Math.round(avgPrazo)} dias`;
-      document.getElementById('kpiPrazoSub').innerText = subtextPrazo;
-
-      document.getElementById('kpiMC').innerText = formatCurr(mcRs);
-      document.getElementById('kpiCustosTotal').innerText = formatCurr(custoMat + custoGgf);
-      document.getElementById('kpiMCPct').innerText = `${avgMcPct.toFixed(1)}%`;
-      document.getElementById('kpiMBPct').innerText = `${avgMbPct.toFixed(1)}%`;
-
-      renderCharts(data);
-      
-      renderGruposTable(data);
-      renderClientesTable(data);
-      renderTopItensTable(data);
-      renderLinhasTable(data);
-      renderFamiliasTable(data);
-    }
-
-    function renderBadge(id, val) {
-      const el = document.getElementById(id);
-      el.innerText = `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`;
-      el.className = val > 0 ? 'text-xs font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700' :
-                     val < 0 ? 'text-xs font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700' :
-                               'text-xs font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600';
-    }
-
-    function formatCurr(val) {
-      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    function renderCharts(data) {
-      const grupoGroup = {};
-      data.forEach(d => {
-        const g = getGrupoEconomico(d);
-        if (!grupoGroup[g]) grupoGroup[g] = { l25: 0, l26: 0 };
-        grupoGroup[g].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grupoGroup[g].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-
-      const top5Grupos = Object.entries(grupoGroup).sort((a, b) => b[1].l26 - a[1].l26).slice(0, 5);
-      createHorizontalDoubleBar('chartGrupoEconomico', top5Grupos);
-
-      const tecGroup = {};
-      data.forEach(d => {
-        const t = getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false) || 'Outros';
-        tecGroup[t] = (tecGroup[t] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-      createDoughnut('chartTecnologia', tecGroup, ['#1693a5', '#000000', '#d8d8c0', '#555555']);
-
-      const filialGroup = {};
-      data.forEach(d => {
-        const f = getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false) || 'Sem Filial';
-        filialGroup[f] = (filialGroup[f] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-      createBar('chartFilial', filialGroup, '#1693a5');
-
-      const linhaGroup = {};
-      data.forEach(d => {
-        const l = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || 'Outras';
-        linhaGroup[l] = (linhaGroup[l] || 0) + getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-      createBar('chartLinhaComercial', linhaGroup, '#000000');
-
-      const itemGroup = {};
-      data.forEach(d => {
-        const cod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
-        const desc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
-        const name = cod && desc ? `${cod} - ${desc}` : (desc || cod || 'Item N/A');
-        
-        if (!itemGroup[name]) {
-          itemGroup[name] = { l25: 0, l26: 0 };
-        }
-        itemGroup[name].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        itemGroup[name].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-
-      const top10 = Object.entries(itemGroup).sort((a,b) => b[1].l26 - a[1].l26).slice(0, 10);
-      createHorizontalDoubleBar('chartTopItens', top10);
-
-      const mesMap = {};
-      data.forEach(d => {
-        const mes = getVal(d, ['Mês', 'mês', 'Mes'], false) || 'N/A';
-        if (!mesMap[mes]) mesMap[mes] = { l25: 0, l26: 0 };
-        mesMap[mes].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        mesMap[mes].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-      });
-
-      const labels = Object.keys(mesMap).sort((a, b) => getMonthRank(a) - getMonthRank(b));
-      createDoubleBar('chartEvolucao', labels, labels.map(m => mesMap[m].l25), labels.map(m => mesMap[m].l26));
-    }
-
-    function createDoughnut(id, groupObj, colors) {
-      if (chartInstances[id]) chartInstances[id].destroy();
-      chartInstances[id] = new Chart(document.getElementById(id), {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys(groupObj),
-          datasets: [{ data: Object.values(groupObj), backgroundColor: colors }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-      });
-    }
-
-    function createBar(id, groupObj, color) {
-      if (chartInstances[id]) chartInstances[id].destroy();
-      chartInstances[id] = new Chart(document.getElementById(id), {
-        type: 'bar',
-        data: {
-          labels: Object.keys(groupObj),
-          datasets: [{ label: 'Faturamento 2026', data: Object.values(groupObj), backgroundColor: color, borderRadius: 6 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-    }
-
-    function createHorizontalDoubleBar(id, topArray) {
-      if (chartInstances[id]) chartInstances[id].destroy();
-      chartInstances[id] = new Chart(document.getElementById(id), {
-        type: 'bar',
-        data: {
-          labels: topArray.map(c => c[0].length > 25 ? c[0].substring(0, 25) + '...' : c[0]),
-          datasets: [
-            { label: 'Líquido 2025', data: topArray.map(c => c[1].l25), backgroundColor: '#d8d8c0', borderRadius: 6 },
-            { label: 'Líquido 2026', data: topArray.map(c => c[1].l26), backgroundColor: '#1693a5', borderRadius: 6 }
-          ]
-        },
-        options: { 
-          indexAxis: 'y', 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          plugins: { legend: { position: 'top' } } 
-        }
-      });
-    }
-
-    function createDoubleBar(id, labels, data1, data2) {
-      if (chartInstances[id]) chartInstances[id].destroy();
-      chartInstances[id] = new Chart(document.getElementById(id), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Líquido 2025', data: data1, backgroundColor: '#d8d8c0', borderRadius: 6 },
-            { label: 'Líquido 2026', data: data2, backgroundColor: '#1693a5', borderRadius: 6 }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
-      });
-    }
-
-    function renderGruposTable(data) {
-      const tbody = document.getElementById('tableBodyGrupos');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum grupo encontrado.</td></tr>`;
-        document.getElementById('gruposCount').innerText = `Exibindo 0 grupos`;
-        return;
-      }
-
-      const grouped = {};
-
-      data.forEach(d => {
-        const grpStr = getGrupoEconomico(d);
-
-        if (!grouped[grpStr]) {
-          grouped[grpStr] = { grpStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
-        }
-
-        grouped[grpStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grouped[grpStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        grouped[grpStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        grouped[grpStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        grouped[grpStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-      });
-
-      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
-      document.getElementById('gruposCount').innerText = `Exibindo ${sorted.length} grupo(s)`;
-
-      const rows = sorted.map(d => {
-        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
-        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
-        const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
-        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-semibold text-black">${d.grpStr}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${formatCurr(prcMed)}</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-
-    function renderClientesTable(data) {
-      const tbody = document.getElementById('tableBodyClientes');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum cliente encontrado.</td></tr>`;
-        document.getElementById('clientesCount').innerText = `Exibindo 0 clientes`;
-        return;
-      }
-
-      const grouped = {};
-
-      data.forEach(d => {
-        const cod = getVal(d, ['Cliente - Código', 'codigo do cliente', 'CodCliente', 'Cliente Codigo'], false);
-        const nome = getVal(d, ['Cliente - Matriz Razão', 'Nome do cliente', 'NomeCliente', 'Cliente'], false);
-        const cliStr = cod && nome ? `${cod} - ${nome}` : (nome || cod || 'CLIENTE NÃO IDENTIFICADO');
-
-        if (!grouped[cliStr]) {
-          grouped[cliStr] = { cliStr, l25: 0, l26: 0, v25: 0, v26: 0, mcRs: 0 };
-        }
-
-        grouped[cliStr].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grouped[cliStr].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        grouped[cliStr].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        grouped[cliStr].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        grouped[cliStr].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-      });
-
-      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
-      document.getElementById('clientesCount').innerText = `Exibindo ${sorted.length} cliente(s)`;
-
-      const rows = sorted.map(d => {
-        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
-        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
-        const prcMed = d.v26 > 0 ? d.l26 / d.v26 : 0;
-        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-semibold text-black">${d.cliStr}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${formatCurr(prcMed)}</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-
-    function renderTopItensTable(data) {
-      const tbody = document.getElementById('tableBodyTopItens');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-gray-400">Nenhum registro encontrado.</td></tr>`;
-        document.getElementById('topItensCount').innerText = `Exibindo 0 itens`;
-        return;
-      }
-
-      const grouped = {};
-
-      data.forEach(d => {
-        const itemCod = getVal(d, ['Item - Código', 'Item - Codigo', 'Código do item', 'Codigo do item', 'Item Codigo'], false);
-        const itemDesc = getVal(d, ['Item', 'Descrição do item', 'Descricao do item'], false);
-        const itemKey = itemCod || itemDesc || 'DESCONHECIDO';
-
-        if (!grouped[itemKey]) {
-          grouped[itemKey] = {
-            filial: getVal(d, ['Grupo Empresa', 'Planta de Faturamento', 'Filial', 'Planta'], false) || '-',
-            tipo: getVal(d, ['Líquida/Pó', 'Liquida/Po', 'Tinta Líquida ou Tinta pó', 'TipoTinta', 'Tipo'], false) || '-',
-            linha: getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || '-',
-            familia: getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false) || '-',
-            itemStr: itemCod && itemDesc ? `${itemCod} - ${itemDesc}` : (itemDesc || itemCod || 'N/A'),
-            l25: 0,
-            l26: 0,
-            v25: 0,
-            v26: 0,
-            mcRs: 0
-          };
-        }
-
-        grouped[itemKey].l25 += getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        grouped[itemKey].l26 += getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        grouped[itemKey].v25 += getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        grouped[itemKey].v26 += getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        grouped[itemKey].mcRs += getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-      });
-
-      const sorted = Object.values(grouped).sort((a, b) => b.l26 - a.l26);
-
-      const fItem = normalizeStr(document.getElementById('filterItem').value);
-      const listToDisplay = fItem ? sorted : sorted.slice(0, 20);
-
-      document.getElementById('topItensCount').innerText = fItem 
-        ? `Exibindo ${listToDisplay.length} item(ns) consolidado(s)` 
-        : `Exibindo Top ${listToDisplay.length} de ${sorted.length} itens consolidados`;
-
-      const rows = listToDisplay.map(d => {
-        const vLiq = d.l25 > 0 ? ((d.l26 - d.l25) / d.l25) * 100 : 0;
-        const vVol = d.v25 > 0 ? ((d.v26 - d.v25) / d.v25) * 100 : 0;
-        const mcPct = d.l26 > 0 ? (d.mcRs / d.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-semibold text-black">${d.filial}</td>
-            <td class="py-3 px-3"><span class="custom-bg-light border custom-border text-black px-2 py-0.5 rounded font-semibold text-[10px]">${d.tipo}</span></td>
-            <td class="py-3 px-3">
-              <div class="font-medium text-black">${d.linha}</div>
-              <div class="text-[10px] text-gray-500">${d.familia}</div>
-            </td>
-            <td class="py-3 px-3 font-medium text-black max-w-xs truncate" title="${d.itemStr}">${d.itemStr}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(d.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(d.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${d.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-
-    function renderLinhasTable(data) {
-      const tbody = document.getElementById('tableBodyLinhas');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-gray-400">Nenhum registro.</td></tr>`;
-        return;
-      }
-
-      const map = {};
-      data.forEach(d => {
-        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || 'Sem Linha';
-        if (!map[linha]) {
-          map[linha] = { l25: 0, l26: 0, v25: 0, v26: 0, mc: 0 };
-        }
-        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        const v25 = getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        const v26 = getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        const mc = getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-
-        map[linha].l25 += l25;
-        map[linha].l26 += l26;
-        map[linha].v25 += v25;
-        map[linha].v26 += v26;
-        map[linha].mc += mc;
-      });
-
-      const sorted = Object.entries(map).sort((a, b) => b[1].l26 - a[1].l26);
-
-      const rows = sorted.map(([linha, val]) => {
-        const vLiq = val.l25 > 0 ? ((val.l26 - val.l25) / val.l25) * 100 : 0;
-        const vVol = val.v25 > 0 ? ((val.v26 - val.v25) / val.v25) * 100 : 0;
-        const mcPct = val.l26 > 0 ? (val.mc / val.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-bold text-black">${linha}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(val.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(val.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${val.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${val.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-
-    function renderFamiliasTable(data) {
-      const tbody = document.getElementById('tableBodyFamilias');
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-400">Nenhum registro.</td></tr>`;
-        return;
-      }
-
-      const map = {};
-      data.forEach(d => {
-        const familia = getVal(d, ['Família Comercial', 'Familia Comercial', 'Família comercial', 'Familia'], false) || 'Sem Família';
-        const linha = getVal(d, ['Linha Comercial', 'Linha comercial', 'Linha'], false) || '-';
-
-        if (!map[familia]) {
-          map[familia] = { linha, l25: 0, l26: 0, v25: 0, v26: 0, mc: 0 };
-        }
-        const l25 = getVal(d, ['R$ Líquido 2025', 'faturamento liquido 2025', 'Liquido 2025', 'R$ Liq 2025']);
-        const l26 = getVal(d, ['R$ Líquido 2026', 'faturamento liquido 2026', 'Liquido 2026', 'R$ Liq 2026']);
-        const v25 = getVal(d, ['Qtd (LT) 2025', 'volume faturado 2025', 'Vol 2025', 'Qtd 2025']);
-        const v26 = getVal(d, ['Qtd (LT) 2026', 'volume faturado 2026', 'Vol 2026', 'Qtd 2026']);
-        const mc = getVal(d, ['R$ MC', 'margem de contribuição em reais', 'MC RS', 'Margem MC']);
-
-        map[familia].l25 += l25;
-        map[familia].l26 += l26;
-        map[familia].v25 += v25;
-        map[familia].v26 += v26;
-        map[familia].mc += mc;
-      });
-
-      const sorted = Object.entries(map).sort((a, b) => b[1].l26 - a[1].l26).slice(0, 10);
-
-      const rows = sorted.map(([familia, val]) => {
-        const vLiq = val.l25 > 0 ? ((val.l26 - val.l25) / val.l25) * 100 : 0;
-        const vVol = val.v25 > 0 ? ((val.v26 - val.v25) / val.v25) * 100 : 0;
-        const mcPct = val.l26 > 0 ? (val.mc / val.l26) * 100 : 0;
-
-        return `
-          <tr class="hover:bg-amber-50/40 transition">
-            <td class="py-3 px-3 font-bold text-black">${familia}</td>
-            <td class="py-3 px-3 text-gray-500">${val.linha}</td>
-            <td class="py-3 px-3 text-right">${formatCurr(val.l25)}</td>
-            <td class="py-3 px-3 text-right font-semibold text-black">${formatCurr(val.l26)}</td>
-            <td class="py-3 px-3 text-right ${vLiq >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vLiq.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${val.v25.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right font-medium text-black">${val.v26.toLocaleString('pt-BR')}</td>
-            <td class="py-3 px-3 text-right ${vVol >= 0 ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}">${vVol.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-right font-medium">${mcPct.toFixed(1)}%</td>
-          </tr>
-        `;
-      });
-
-      tbody.innerHTML = rows.join('');
-    }
-  </script>
+    h+=`<label class="full">Cliente<select id="f-cli">${o}</select></label>`;
+  }
+  if(META.months.length>1){const mo=META.months.map(m=>[m,MESC[m]]);h+=sel('f-m0','De',mo,S.m0)+sel('f-m1','Até',mo,S.m1)}
+  $('#filters').innerHTML=h;
+}
+function drawTabs(){$('#tabs').innerHTML=TABS.map(t=>`<button class="tab" role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join('')}
+const k0=()=>S.cli.slice(2);
+function draw(){
+  const rowsAll=DATA.rows.filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&r.mes>=S.m0&&r.mes<=S.m1);
+  const k=S.cli.slice(2), rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:r.cod===k);
+  C={rows,rowsAll,tot:sum(rows),totAll:sum(rowsAll),codSel:S.cli[0]==='c'?k:''};
+  drawFilters();drawTabs();TABLES={};CHARTS={};
+  const lbl=S.m0===S.m1?MESC[S.m0]:`${MESC[S.m0]}–${MESC[S.m1]}`.toLowerCase();
+  $('#sub').textContent=`Receita líquida · ${lbl} ${META.y1} contra ${META.y0}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
+  const tab=TABS.find(t=>t[0]===S.tab)||TABS[0];
+  $('#view').innerHTML=rows.length?tab[2]():'<div class="card">Sem dados para os filtros escolhidos.</div>';
+  Object.keys(TABLES).forEach(drawTable);
+  drawCharts();
+}
+function drawCharts(){document.querySelectorAll('[data-chart]').forEach(el=>{const c=CHARTS[el.dataset.chart];if(c)drawChart(el,c)})}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli]');if(!t)return;
+  if(t.dataset.tab){S.tab=t.dataset.tab;draw();scrollTo({top:0})}
+  else if(t.dataset.setcli){S.cli=t.dataset.setcli;const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k]);draw();scrollTo({top:0})}
+  else if(t.dataset.metric){S.metric=t.dataset.metric;draw()}
+  else if(t.dataset.sort){const [id,k]=t.dataset.sort.split('|'),s=S.sort[id];S.sort[id]={k,d:s.k===k?-s.d:(k==='name'?1:-1)};drawTable(id)}
+  else if(t.dataset.more){S.lim[t.dataset.more]=(S.lim[t.dataset.more]||25)+25;drawTable(t.dataset.more)}
+  else if(t.dataset.exp){const k=t.dataset.exp;S.exp.has(k)?S.exp.delete(k):S.exp.add(k);drawTable(k.split('|')[0])}
+  else if(t.dataset.go){S.open.add(t.dataset.go);S.tab='cli';draw();setTimeout(()=>{const d=[...document.querySelectorAll('details.cli')].find(x=>x.dataset.cli===t.dataset.go);d&&d.scrollIntoView({block:'start'})},0)}
+});
+document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches('details.cli')){const n=d.dataset.cli;if(d.open&&!S.open.has(n)){S.open.add(n);draw();const x=[...document.querySelectorAll('details.cli')].find(y=>y.dataset.cli===n);x&&x.scrollIntoView({block:'nearest'})}else if(!d.open&&S.open.has(n)){S.open.delete(n);draw()}}},true);
+document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.q){S.q[e.target.dataset.q]=e.target.value;S.lim[e.target.dataset.q]=25;drawTable(e.target.dataset.q)}});
+document.addEventListener('change',e=>{
+  const id=e.target.id;
+  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
+  else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
+  else return;
+  draw();
+});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>DATA&&drawCharts(),150)});
+document.addEventListener('scroll',()=>{$('#tt').style.display='none'},{passive:true});
+$('#theme').addEventListener('click',()=>{
+  const dark=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme=dark?'light':'dark';
+  try{localStorage.setItem('tema',document.documentElement.dataset.theme)}catch(_){}
+  if(DATA)draw();
+});
+try{const t=localStorage.getItem('tema');if(t)document.documentElement.dataset.theme=t}catch(_){}
+
+/* =====================================================================
+   8. CARREGAMENTO
+   ===================================================================== */
+function iniciar(tabela,nome,modificado){
+  const d=padronizar(tabela);
+  DATA=d;
+  const u=(f)=>[...new Set(d.rows.map(f))].sort();
+  META={y0:d.y0,y1:d.y1,temMc:d.temMc,temQtd:d.temQtd,ignoradas:d.ignoradas,arquivo:nome,modificado,
+    months:[...new Set(d.rows.map(r=>r.mes))].sort((a,b)=>a-b),emps:u(r=>r.emp).filter(x=>x!=='—'),ufs:u(r=>r.uf).filter(x=>x!=='—'),clientes:u(r=>r.cli)};
+  META.cods={};META.codMat={};
+  {const g=new Map();d.rows.forEach(r=>{if(!r.cod)return;const key=r.cli+'\u0001'+r.cod;let o=g.get(key);if(!o){o={cli:r.cli,cod:r.cod,uf:{}};g.set(key,o)}o.uf[r.uf]=(o.uf[r.uf]||0)+Math.abs(r.a)+Math.abs(r.b)});
+   g.forEach(o=>{const uf=Object.entries(o.uf).sort((x,y)=>y[1]-x[1])[0][0];(META.cods[o.cli]=META.cods[o.cli]||[]).push({cod:o.cod,uf});META.codMat[o.cod]=o.cli});
+   Object.values(META.cods).forEach(a=>a.sort((x,y)=>x.cod.localeCompare(y.cod,'pt',{numeric:true})));META.codsTotal=g.size}
+  S.m0=META.months[0];S.m1=META.months[META.months.length-1];
+  $('#loader').innerHTML='';$('#main').hidden=false;
+  $('#foot').textContent=`Base: ${nome}${modificado?' · atualizada em '+modificado:''} · ${NUM.format(d.rows.length)} linhas`;
+  draw();
+}
+async function processar(buf,nome,modificado){
+  let tabela;
+  if(/\.csv$/i.test(nome))tabela=lerCsv(new TextDecoder('utf-8').decode(buf).replace(/^﻿/,''));
+  else tabela=await lerXlsx(buf);
+  iniciar(tabela,nome,modificado);
+}
+function pedirArquivo(msg){
+  $('#sub').textContent='Aguardando a planilha';
+  $('#loader').innerHTML=`<div class="drop"><h2>Selecione a planilha de vendas</h2><p class="note">${msg}</p>
+  <label class="btn">Escolher arquivo (.xlsx ou .csv)<input id="file" type="file" accept=".xlsx,.csv" hidden></label><div id="err"></div></div>`;
+  $('#file').addEventListener('change',async e=>{
+    const f=e.target.files[0];if(!f)return;
+    try{await processar(await f.arrayBuffer(),f.name,new Date(f.lastModified).toLocaleDateString('pt-BR'))}
+    catch(err){$('#err').innerHTML=`<div class="err">${esc(err.message)}</div>`}
+  });
+}
+/* ---- acesso: usuário + senha destravam o arquivo dados.enc (AES-256-GCM, chave derivada por PBKDF2) ---- */
+const te=new TextEncoder();
+const b64e=u8=>btoa(String.fromCharCode(...new Uint8Array(u8)));
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function chaveDe(usuario,senha){
+  const u=usuario.trim().toLowerCase();
+  const base=await crypto.subtle.importKey('raw',te.encode(u+'\u0000'+senha),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:te.encode('dashboard-vendas:v1:'+u),iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['decrypt']);
+}
+async function abrir(u8,key){try{return await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(4,16)},key,u8.slice(16))}catch(_){return null}}
+async function entrar(pt,mod){
+  const tabela=await lerXlsx(pt);
+  $('#sair').hidden=false;
+  iniciar(tabela,'dados.enc (criptografado)',mod);
+}
+function mostrarLogin(u8,mod){
+  $('#sub').textContent='Acesso restrito';
+  $('#loader').innerHTML=`<form class="drop login" id="login"><h2>Entrar</h2><p class="note">Digite o usuário e a senha para ver o dashboard.</p>
+  <label>Usuário<input id="lu" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" required></label>
+  <label>Senha<input id="ls" name="password" type="password" autocomplete="current-password" required></label>
+  <label class="chk"><input id="lc" type="checkbox"> Manter conectado neste aparelho</label>
+  <button class="btn" id="lb" type="submit">Entrar</button><div id="lm" class="err" hidden></div></form>`;
+  try{const ul=localStorage.getItem('dsh_user');if(ul)$('#lu').value=ul}catch(_){}
+  $('#login').addEventListener('submit',async e=>{
+    e.preventDefault();const b=$('#lb'),m=$('#lm');b.disabled=true;b.textContent='Verificando…';m.hidden=true;
+    try{
+      const key=await chaveDe($('#lu').value,$('#ls').value), pt=await abrir(u8,key);
+      if(!pt){m.textContent='Usuário ou senha incorretos.';m.hidden=false;b.disabled=false;b.textContent='Entrar';$('#ls').value='';$('#ls').focus();return}
+      const raw=b64e(await crypto.subtle.exportKey('raw',key));
+      try{sessionStorage.setItem('dsh_key',raw);if($('#lc').checked){localStorage.setItem('dsh_key',raw);localStorage.setItem('dsh_user',$('#lu').value.trim())}}catch(_){}
+      await entrar(pt,mod);
+    }catch(err){m.textContent='Não foi possível abrir os dados: '+err.message;m.hidden=false;b.disabled=false;b.textContent='Entrar'}
+  });
+  ($('#lu').value?$('#ls'):$('#lu')).focus();
+}
+$('#sair').addEventListener('click',()=>{try{sessionStorage.removeItem('dsh_key');localStorage.removeItem('dsh_key')}catch(_){}location.reload()});
+(async function(){
+  if(!(window.crypto&&crypto.subtle)){pedirArquivo('Este navegador não consegue abrir o acesso protegido (é preciso uma conexão segura, https). Você pode escolher uma planilha do seu computador para ver os dados.');return}
+  let achou=null;
+  try{
+    const r=await fetch('dados.enc?v='+Date.now());
+    if(r.ok&&!(r.headers.get('content-type')||'').includes('text/html')){const lm=r.headers.get('last-modified');achou={buf:await r.arrayBuffer(),mod:lm?new Date(lm).toLocaleDateString('pt-BR'):''}}
+  }catch(_){}
+  if(!achou){pedirArquivo('Não encontrei o arquivo <b>dados.enc</b> junto com o site. Publicado no GitHub/Vercel ele é lido automaticamente; para ver agora, escolha uma planilha do seu computador.');return}
+  const u8=new Uint8Array(achou.buf);
+  if(String.fromCharCode(...u8.slice(0,4))!=='DSH1'){pedirArquivo('');$('#err').innerHTML='<div class="err">O arquivo dados.enc não está no formato esperado. Gere-o de novo com a ferramenta criptografar.html.</div>';return}
+  for(const store of ['sessionStorage','localStorage']){
+    try{const k=window[store].getItem('dsh_key');if(!k)continue;const key=await crypto.subtle.importKey('raw',b64d(k),'AES-GCM',false,['decrypt']);const pt=await abrir(u8,key);if(pt){await entrar(pt,achou.mod);return}}catch(_){}
+  }
+  mostrarLogin(u8,achou.mod);
+})();
+})();
+</script>
 </body>
 </html>
