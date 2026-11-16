@@ -6,19 +6,19 @@
 <title>Dashboard de Vendas</title>
 <style>
 :root{
-  --bg:#f4f6f8; --surface:#ffffff; --ink:#14212b; --ink2:#46586a; --muted:#6b7a89; --line:#dde3e9; --line2:#eef1f4;
-  --y0:#8fa1b3; --y1:#2a78d6; --accent:#2a78d6; --accent-soft:#e3eef9;
-  --good:#17785a; --good-soft:#dff1ea; --bad:#b83a2c; --bad-soft:#f9e4e0; --warn:#9a6700; --warn-soft:#fbefd0;
+  --bg:#f5f5f4; --surface:#ffffff; --ink:#171717; --ink2:#4a4a4a; --muted:#6e6e6e; --line:#e1dfdc; --line2:#f0eeeb;
+  --y0:#a3a3a3; --y1:#f36f10; --accent:#d9620b; --accent-soft:#fdeee0;
+  --good:#17785a; --good-soft:#dff1ea; --bad:#b83a2c; --bad-soft:#f9e4e0; --warn:#9a5a00; --warn-soft:#fbefd0;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f161c; --surface:#17212a; --ink:#e6edf3; --ink2:#a9b8c6; --muted:#8696a5; --line:#2a3743; --line2:#202c36;
-  --y0:#667a8d; --y1:#3987e5; --accent:#5aa0ee; --accent-soft:#1a2e3d;
-  --good:#4fc79c; --good-soft:#15332b; --bad:#ff8a78; --bad-soft:#3a1f1b; --warn:#e5b94a; --warn-soft:#352a10; color-scheme:dark}}
+  --bg:#050505; --surface:#141414; --ink:#f5f5f5; --ink2:#c9c9c9; --muted:#a3a3a3; --line:#2f2f2f; --line2:#1f1f1f;
+  --y0:#6b6b6b; --y1:#f36f10; --accent:#f36f10; --accent-soft:#2a1a0d;
+  --good:#27a874; --good-soft:#0f241c; --bad:#f0626d; --bad-soft:#2d1316; --warn:#ff9a43; --warn-soft:#2d1d0d; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f161c; --surface:#17212a; --ink:#e6edf3; --ink2:#a9b8c6; --muted:#8696a5; --line:#2a3743; --line2:#202c36;
-  --y0:#667a8d; --y1:#3987e5; --accent:#5aa0ee; --accent-soft:#1a2e3d;
-  --good:#4fc79c; --good-soft:#15332b; --bad:#ff8a78; --bad-soft:#3a1f1b; --warn:#e5b94a; --warn-soft:#352a10; color-scheme:dark}
+  --bg:#050505; --surface:#141414; --ink:#f5f5f5; --ink2:#c9c9c9; --muted:#a3a3a3; --line:#2f2f2f; --line2:#1f1f1f;
+  --y0:#6b6b6b; --y1:#f36f10; --accent:#f36f10; --accent-soft:#2a1a0d;
+  --good:#27a874; --good-soft:#0f241c; --bad:#f0626d; --bad-soft:#2d1316; --warn:#ff9a43; --warn-soft:#2d1d0d; color-scheme:dark}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
@@ -36,12 +36,12 @@ select,input[type=search]{font:14px system-ui,sans-serif;color:var(--ink);backgr
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:thin}
 .tab{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink2);padding:0 14px;height:40px;border-radius:99px;cursor:pointer;font:600 13px system-ui,sans-serif;white-space:nowrap}
 .tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:16px;padding:14px;margin-bottom:14px;min-width:0}
 .card h3{font-size:15px}
 .ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .ch .srch{max-width:260px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:16px;padding:12px 14px;min-width:0}
 .kpi .l{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .kpi .v{font-size:22px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .kpi .s{font-size:12px;color:var(--ink2)}
@@ -93,21 +93,41 @@ h4.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--
 .pills span{background:var(--line2);border-radius:99px;padding:3px 10px;font-size:12.5px}
 .note{font-size:12px;color:var(--muted)}
 input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;height:40px;padding:0 10px;width:100%;min-width:0}
-.filters .full{flex:1 1 100%}
-.atalhos{display:flex;flex-wrap:wrap;gap:6px}
-.atalhos button,.notice button{border:1px solid var(--line);background:var(--surface);color:var(--ink2);height:32px;padding:0 12px;border-radius:99px;cursor:pointer;font:600 12.5px system-ui,sans-serif}
+.filters label.atl{flex:0 1 170px}
+.notice button{border:1px solid var(--line);background:var(--surface);color:var(--ink2);height:32px;padding:0 12px;border-radius:99px;cursor:pointer;font:600 12.5px system-ui,sans-serif}
 .notice{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--ink2);display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
 .notice button{height:30px}
 .notice:empty{display:none}
+.tvhint{display:none;position:fixed;right:22px;bottom:20px;z-index:200;padding:10px 14px;border-radius:12px;background:rgba(12,12,12,.94);border:1px solid #444;color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:opacity .6s}
+.tvhint b,.tvhint span{display:block}.tvhint span{font-size:11px;color:#bdbdbd;margin-top:2px}
+body.tv .tvhint{display:block}body.tv .tvhint.off{opacity:0;pointer-events:none}
+body.tv{background:var(--bg)}
+body.tv .wrap{max-width:none}
+body.tv{padding-top:12px}
+body.tv #sair,body.tv #theme,body.tv .foot{display:none!important}
+body.tv #tv{background:var(--accent);border-color:transparent;color:#fff}
+body.tv header h1{font-size:30px}body.tv header p{font-size:14px}
+body.tv .filters label{font-size:12px}body.tv select,body.tv input[type=date]{height:44px;font-size:16px}
+body.tv .tab{height:44px;font-size:15px;padding:0 18px}
+body.tv .kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+body.tv .kpi{padding:18px 20px}body.tv .kpi .l{font-size:12.5px}body.tv .kpi .v{font-size:clamp(28px,2.6vw,44px);margin:10px 0 6px}body.tv .kpi .s{font-size:14px}
+body.tv .card{padding:20px}body.tv .card h3{font-size:20px}body.tv .note,body.tv .notice{font-size:14px}
+body.tv .chart text{font-size:13px}body.tv th{font-size:12.5px}body.tv td{font-size:15px;padding:10px}
+body.tv .chip{font-size:13px}body.tv .ins{font-size:15px}
+body.tv .seg button{height:40px;font-size:14px}
+@media (max-width:900px){body.tv .kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){#tv{display:none}}
 .foot{font-size:12px;color:var(--muted);margin-top:8px}
 .drop{border:2px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;background:var(--surface)}
 .drop h2{font-size:18px;margin-bottom:8px}
 .err{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;margin-top:12px;text-align:left}
 .btn{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
-.hbtns{display:flex;gap:8px;flex:none}
-:root{--b0:#2a78d6;--b1:#e0792a;--b2:#4f9e4f;--b3:#8e6cc8;--onb:#fff}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--b0:#4b97ee;--b1:#f0a05f;--b2:#7cc47c;--b3:#b79be3;--onb:#0f161c}}
-:root[data-theme="dark"]{--b0:#4b97ee;--b1:#f0a05f;--b2:#7cc47c;--b3:#b79be3;--onb:#0f161c}
+.hbtns{display:flex;gap:8px;flex:none;align-items:center}
+#modo{height:40px}#modo button{height:38px}
+@media (max-width:640px){header{flex-wrap:wrap}.hbtns{flex-wrap:wrap;justify-content:flex-end;margin-left:auto}}
+:root{--b0:#2a78d6;--b1:#f36f10;--b2:#27a874;--b3:#8e6cc8;--onb:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--b0:#4b97ee;--b1:#f36f10;--b2:#27a874;--b3:#b79be3;--onb:#0a0a0a}}
+:root[data-theme="dark"]{--b0:#4b97ee;--b1:#f36f10;--b2:#27a874;--b3:#b79be3;--onb:#0a0a0a}
 .sq{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:-1px}
 .srow{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;margin:8px 0}
 .srow>span{font-size:12px;color:var(--muted)}
@@ -138,7 +158,7 @@ input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(
 .lrow .sub{display:block;color:var(--muted);font-size:11.5px}
 .lrow .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
 .filters label.full{flex:2 1 220px}
-@media (max-width:640px){.filters{display:grid;grid-template-columns:1fr 1fr}.filters label,.filters label.full{min-width:0}.filters label.full,.filters div.full{grid-column:1/-1}}
+@media (max-width:640px){.filters{display:grid;grid-template-columns:1fr 1fr}.filters label,.filters label.full{min-width:0}.filters label.full,.filters label.atl{grid-column:1/-1}}
 .pri{display:inline-block;font:600 11.5px system-ui,sans-serif;padding:3px 10px;border-radius:99px}
 .pri.alta{background:var(--bad-soft);color:var(--bad)} .pri.media{background:var(--warn-soft);color:var(--warn)}
 .plan{border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -165,6 +185,8 @@ input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(
       <p id="sub">Carregando dados…</p>
     </div>
     <div class="hbtns">
+      <div class="seg" id="modo" role="group" aria-label="Forma de escolher o período" hidden></div>
+      <button class="icon-btn" id="tv" hidden title="Tela cheia para apresentação (atalho: T)" style="padding:0 12px;font:600 13px system-ui,sans-serif">Modo TV</button>
       <button class="icon-btn" id="sair" hidden title="Sair e voltar para a tela de login" style="padding:0 12px;font:600 13px system-ui,sans-serif">Sair</button>
       <button class="icon-btn" id="theme" title="Alternar tema claro/escuro" aria-label="Alternar tema" style="padding:0 12px;font:600 13px system-ui,sans-serif">Tema</button>
     </div>
@@ -179,6 +201,7 @@ input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(
   </main>
 </div>
 <div class="tt" id="tt"></div>
+<div class="tvhint" id="tvhint"><b>Modo TV ativo</b><span>Setas ← → trocam de aba · T ou Esc para sair</span></div>
 
 <script>
 (function(){
@@ -767,11 +790,11 @@ function drawFilters(){
     }
     h+=`<label class="full">Cliente<select id="f-cli">${o}</select></label>`;
   }
-  if(META.temData){h+=`<div class="full"><div class="seg" role="group" aria-label="Forma de escolher o período"><button data-modo="mes" aria-pressed="${S.modo==='mes'}">Por mês</button><button data-modo="dia" aria-pressed="${S.modo==='dia'}">Por dia</button></div></div>`}
+  {const m=$('#modo');m.hidden=!META.temData;m.innerHTML=META.temData?`<button data-modo="mes" aria-pressed="${S.modo==='mes'}">Por mês</button><button data-modo="dia" aria-pressed="${S.modo==='dia'}">Por dia</button>`:''}
   if(emDia()){
     const mi=`${META.y1}-01-01`,ma=`${META.y1}-12-31`;
     h+=`<label>De<input type="date" id="f-d0" value="${S.d0}" min="${mi}" max="${ma}"></label><label>Até<input type="date" id="f-d1" value="${S.d1}" min="${mi}" max="${ma}"></label>`;
-    h+=`<div class="full atalhos">${[['mes','Mês atual'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['ant','Mês anterior'],['ano','Ano até hoje']].map(a=>`<button data-atalho="${a[0]}">${a[1]}</button>`).join('')}</div>`;
+    h+=`<label class="atl">Atalhos<select id="f-atalho"><option value="">Escolher…</option>${[['mes','Mês atual'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['ant','Mês anterior'],['ano','Ano até hoje']].map(a=>`<option value="${a[0]}">${a[1]}</option>`).join('')}</select></label>`;
   }else if(META.months.length>1){const mo=META.months.map(m=>[m,MESC[m]]);h+=sel('f-m0','De',mo,S.m0)+sel('f-m1','Até',mo,S.m1)}
   $('#filters').innerHTML=h;
 }
@@ -784,7 +807,7 @@ function draw(){
   drawFilters();drawTabs();TABLES={};CHARTS={};
   const lbl=S.m0===S.m1?MESC[S.m0]:`${MESC[S.m0]}–${MESC[S.m1]}`.toLowerCase();
   $('#sub').textContent=`Receita líquida · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
-  $('#aviso').innerHTML=avisoPeriodo();
+  {const av=avisoPeriodo();$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
   const tab=TABS.find(t=>t[0]===S.tab)||TABS[0];
   $('#view').innerHTML=rows.length?tab[2]():'<div class="card">Sem dados para os filtros escolhidos.</div>';
   Object.keys(TABLES).forEach(drawTable);
@@ -814,6 +837,7 @@ function cardDia(){
   }
   const n=Math.round((fim-ini)/864e5)+1;
   if(n<1)return '';
+  if(n>45&&!emDia())return '';
   if(n>45)return `<div class="card"><h3>Faturamento por dia</h3><p class="note">Escolha um período de até 45 dias (modo <b>Por dia</b>) para ver o gráfico dia a dia.</p></div>`;
   const g=group(C.rows,r=>r.dm),a=[],b=[],dd=[];
   for(let i=0;i<n;i++){const t=new Date(ini.getTime()+i*864e5),k=t.getUTCMonth()*100+t.getUTCDate(),o=g.get(k)||Z();a.push(o.a);b.push(o.b);dd.push([t.getUTCMonth(),t.getUTCDate()])}
@@ -853,11 +877,34 @@ document.addEventListener('change',e=>{
   const id=e.target.id;
   if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
   else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
+  else if(id==='f-atalho'){if(!e.target.value)return;atalho(e.target.value)}
   else if(id==='f-d0'){if(!e.target.value)return;S.d0=e.target.value;if(S.d1<S.d0)S.d1=S.d0}
   else if(id==='f-d1'){if(!e.target.value)return;S.d1=e.target.value;if(S.d0>S.d1)S.d0=S.d1}
   else return;
   draw();
 });
+let tvTimer;
+async function modoTv(){
+  const entra=!document.body.classList.contains('tv');
+  document.body.classList.toggle('tv',entra);
+  $('#tv').textContent=entra?'Sair do modo TV':'Modo TV';
+  const h=$('#tvhint');h.classList.remove('off');clearTimeout(tvTimer);if(entra)tvTimer=setTimeout(()=>h.classList.add('off'),5000);
+  if(entra){scrollTo({top:0});try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch(_){}}
+  else{try{if(document.fullscreenElement)await document.exitFullscreen()}catch(_){}}
+  if(DATA)setTimeout(drawCharts,120);
+}
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement&&document.body.classList.contains('tv')){document.body.classList.remove('tv');$('#tv').textContent='Modo TV'}
+  if(DATA)setTimeout(drawCharts,150);
+});
+document.addEventListener('keydown',e=>{
+  const tag=((e.target&&e.target.tagName)||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea'||e.ctrlKey||e.metaKey||e.altKey||!DATA)return;
+  if(e.key==='t'||e.key==='T'){e.preventDefault();modoTv()}
+  else if(document.body.classList.contains('tv')&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
+    e.preventDefault();const i=TABS.findIndex(t=>t[0]===S.tab),n=(i+(e.key==='ArrowRight'?1:-1)+TABS.length)%TABS.length;S.tab=TABS[n][0];draw();scrollTo({top:0})}
+});
+$('#tv').addEventListener('click',modoTv);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>DATA&&drawCharts(),150)});
 document.addEventListener('scroll',()=>{$('#tt').style.display='none'},{passive:true});
 $('#theme').addEventListener('click',()=>{
@@ -866,7 +913,7 @@ $('#theme').addEventListener('click',()=>{
   try{localStorage.setItem('tema',document.documentElement.dataset.theme)}catch(_){}
   if(DATA)draw();
 });
-try{const t=localStorage.getItem('tema');if(t)document.documentElement.dataset.theme=t}catch(_){}
+try{const t=localStorage.getItem('tema');document.documentElement.dataset.theme=t||'dark'}catch(_){document.documentElement.dataset.theme='dark'}
 
 /* =====================================================================
    8. CARREGAMENTO
@@ -892,7 +939,7 @@ function iniciar(tabela,nome,modificado){
     if(cut>=0){S.d0=isoD(d.y1,META.cutM,1);S.d1=isoD(d.y1,META.cutM,META.cutD)}else META.temData=false;
   }
   S.modo='mes';S.mesCheio=false;
-  $('#loader').innerHTML='';$('#main').hidden=false;
+  $('#loader').innerHTML='';$('#main').hidden=false;$('#tv').hidden=false;
   $('#foot').textContent=`Base: ${nome}${modificado?' · atualizada em '+modificado:''} · ${NUM.format(d.rows.length)} linhas`;
   draw();
 }
