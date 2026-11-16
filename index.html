@@ -92,6 +92,13 @@ h4.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--
 .pills{display:flex;flex-wrap:wrap;gap:6px}
 .pills span{background:var(--line2);border-radius:99px;padding:3px 10px;font-size:12.5px}
 .note{font-size:12px;color:var(--muted)}
+input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;height:40px;padding:0 10px;width:100%;min-width:0}
+.filters .full{flex:1 1 100%}
+.atalhos{display:flex;flex-wrap:wrap;gap:6px}
+.atalhos button,.notice button{border:1px solid var(--line);background:var(--surface);color:var(--ink2);height:32px;padding:0 12px;border-radius:99px;cursor:pointer;font:600 12.5px system-ui,sans-serif}
+.notice{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--ink2);display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
+.notice button{height:30px}
+.notice:empty{display:none}
 .foot{font-size:12px;color:var(--muted);margin-top:8px}
 .drop{border:2px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;background:var(--surface)}
 .drop h2{font-size:18px;margin-bottom:8px}
@@ -131,7 +138,7 @@ h4.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--
 .lrow .sub{display:block;color:var(--muted);font-size:11.5px}
 .lrow .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
 .filters label.full{flex:2 1 220px}
-@media (max-width:640px){.filters{display:grid;grid-template-columns:1fr 1fr}.filters label,.filters label.full{min-width:0}.filters label.full{grid-column:1/-1}}
+@media (max-width:640px){.filters{display:grid;grid-template-columns:1fr 1fr}.filters label,.filters label.full{min-width:0}.filters label.full,.filters div.full{grid-column:1/-1}}
 .pri{display:inline-block;font:600 11.5px system-ui,sans-serif;padding:3px 10px;border-radius:99px}
 .pri.alta{background:var(--bad-soft);color:var(--bad)} .pri.media{background:var(--warn-soft);color:var(--warn)}
 .plan{border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -166,6 +173,7 @@ h4.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--
   <main id="main" hidden>
     <div class="filters" id="filters"></div>
     <nav class="tabs" id="tabs" role="tablist"></nav>
+    <div id="aviso"></div>
     <section id="view"></section>
     <p class="foot" id="foot"></p>
   </main>
@@ -253,6 +261,22 @@ const num=v=>{
   if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
   const n=parseFloat(s);return isNaN(n)?0:n;
 };
+function lerData(v){
+  if(v===''||v==null)return null;
+  let y,m,d,x;
+  if(typeof v==='number'){
+    if(v<20000||v>80000)return null;
+    const dt=new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5);y=dt.getUTCFullYear();m=dt.getUTCMonth()+1;d=dt.getUTCDate();
+  }else{
+    const t=String(v).trim();
+    if((x=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/))){d=+x[1];m=+x[2];y=+x[3]}
+    else if((x=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))){y=+x[1];m=+x[2];d=+x[3]}
+    else if(/^\d{5}$/.test(t))return lerData(+t);
+    else return null;
+  }
+  if(m<1||m>12||d<1||d>31)return null;
+  return {y,m:m-1,d};
+}
 function padronizar(tabela){
   const head=(tabela[0]||[]).map(norm), usadas=new Set();
   const find=(...ops)=>{for(const o of ops){const i=head.findIndex(h=>typeof o==='string'?h===o:o.test(h));if(i>=0){usadas.add(i);return i}}return -1};
@@ -260,7 +284,7 @@ function padronizar(tabela){
   const cMes=find('mes'), cCod=find('clientecodigo','codigocliente');
   const cItem=find('item'), cItemC=find('itemcodigo');
   const cLinha=find('linhacomercial'), cFam=find('familiacomercial');
-  const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa');
+  const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa'), cData=find('datafaturamento','datadefaturamento','datafatura',/^data/);
   const liq=[],qtd=[];
   head.forEach((h,i)=>{let m=h.match(/^rliquido(\d{4})$/);if(m)liq.push([+m[1],i]);m=h.match(/^qtdlt(\d{4})$/);if(m)qtd.push([+m[1],i])});
   liq.sort((a,b)=>a[0]-b[0]);qtd.sort((a,b)=>a[0]-b[0]);
@@ -275,13 +299,16 @@ function padronizar(tabela){
   const [y0,i0]=liq[liq.length-2],[y1,i1]=liq[liq.length-1];
   const q0=(qtd.find(x=>x[0]===y0)||[0,-1])[1], q1=(qtd.find(x=>x[0]===y1)||[0,-1])[1];
   const txt=(r,i,d)=>i<0||r[i]===undefined||r[i]===''?d:String(r[i]).trim();
-  const rows=[];let descartadas=0;
+  const rows=[];let descartadas=0,semData=0;
   for(let k=1;k<tabela.length;k++){
     const r=tabela[k]; if(!r||!r.length)continue;
-    const m=MES.indexOf(txt(r,cMes,'').toLowerCase().slice(0,3));
+    const dt=cData<0?null:lerData(r[cData]);
+    let m=MES.indexOf(txt(r,cMes,'').toLowerCase().slice(0,3));
+    if(m<0&&dt)m=dt.m;
     const cli=txt(r,cCli,'');
     if(m<0||!cli){descartadas++;continue}
-    rows.push({cli,cod:txt(r,cCod,''),mes:m,item:txt(r,cItem,'—'),itemc:txt(r,cItemC,''),linha:txt(r,cLinha,'—'),fam:txt(r,cFam,txt(r,cItem,'—')),
+    if(cData>=0&&!dt)semData++;
+    rows.push({dm:dt?dt.m*100+dt.d:-1,ano:dt?dt.y:0,cli,cod:txt(r,cCod,''),mes:m,item:txt(r,cItem,'—'),itemc:txt(r,cItemC,''),linha:txt(r,cLinha,'—'),fam:txt(r,cFam,txt(r,cItem,'—')),
       uf:txt(r,cUf,'—'),emp:txt(r,cEmp,'—'),a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc])});
   }
   if(!rows.length)throw new Error('A planilha não tem linhas válidas (confira as colunas Cliente e Mês).');
@@ -291,7 +318,7 @@ function padronizar(tabela){
   const melhor=new Map();let itensMultiNome=0;
   nomesItem.forEach((m,k)=>{if(m.size>1)itensMultiNome++;melhor.set(k,[...m].sort((a,b)=>b[1]-a[1])[0][0])});
   rows.forEach(r=>{if(r.itemc)r.item=melhor.get(r.itemc)});
-  return {rows,y0,y1,temMc:cMc>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
+  return {rows,y0,y1,semData,colData:cData>=0,temMc:cMc>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
 }
 
 /* =====================================================================
@@ -321,7 +348,7 @@ function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let
 const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
 const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-const S={tab:'res',emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+const S={tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
 let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
 /* =====================================================================
@@ -334,7 +361,7 @@ function drawChart(el,cfg){
   const both=cfg.a!=null, st=cfg.hl&&cfg.ms.length>1?chartStats(cfg):null;
   const W=Math.max(el.clientWidth||320,260),H=cfg.h||230,pl=46,pr=6,pt=st?(both?28:18):8,pb=24,n=cfg.ms.length;
   const mx=niceMax(Math.max(1e-9,...(both?cfg.a:[0]),...cfg.b)), ih=H-pt-pb, step=(W-pl-pr)/n;
-  const bw=Math.max(4,Math.min(both?18:30,(step-8)/(both?2:1))), fmt=cfg.fmt;
+  const bw=cfg.lab?Math.max(2,Math.min(18,(step-3)/(both?2:1))):Math.max(4,Math.min(both?18:30,(step-8)/(both?2:1))), fmt=cfg.fmt, every=cfg.lab?Math.max(1,Math.ceil(26/step)):1;
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.label)}">`;
   for(let i=0;i<=4;i++){const y=pt+ih-ih*i/4;s+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${fmt(mx*i/4,true)}</text>`}
   if(st&&both)s+=`<text x="${pl-6}" y="12" text-anchor="end">vs ${META.y0}</text>`;
@@ -352,14 +379,14 @@ function drawChart(el,cfg){
       s+=`<path d="${barPath(cx-bw/2,pt+ih-hb,bw,hb,4)}" fill="var(--y1)"${so(bestB)}/>`;
       if(bestB)s+=`<text class="star" text-anchor="middle" x="${cx}" y="${pt+ih-hb-4}">★</text>`;
     }
-    s+=`<text x="${cx}" y="${H-7}" text-anchor="middle">${MESC[m]}</text>`;
+    if(i%every===0)s+=`<text x="${cx}" y="${H-7}" text-anchor="middle">${cfg.lab?cfg.lab(i):MESC[m]}</text>`;
     s+=`<rect x="${pl+step*i}" y="${pt}" width="${step}" height="${ih+pb}" fill="transparent" data-i="${i}" class="hit"/>`;
   });
   s+='</svg>';
   el.innerHTML=s;
   const tt=$('#tt');
   const show=(e,i)=>{
-    let h=`<b>${MESC[cfg.ms[i]]}</b><br>`;
+    let h=`<b>${cfg.tip?cfg.tip(i):MESC[cfg.ms[i]]}</b><br>`;
     if(both){const p=pct(cfg.a[i],cfg.b[i]);h+=`${META.y0}: ${fmt(cfg.a[i])}<br>${META.y1}: ${fmt(cfg.b[i])}<br>${p==null?'—':fV(p)+' vs '+META.y0}`}
     else h+=`${META.y1}: ${fmt(cfg.b[i])}`+(cfg.extra?'<br>'+cfg.extra(i):'');
     tt.innerHTML=h;tt.style.display='block';
@@ -392,8 +419,21 @@ function chartBox(id,cfg,legend){
   CHARTS[id]=cfg;
   return `${legend?`<div class="leg"><span><i style="background:var(--y0)"></i>${META.y0}</span><span><i style="background:var(--y1)"></i>${META.y1}</span></div>`:''}${cfg.hl&&cfg.ms.length>1?chips(cfg):''}<div class="chart" data-chart="${id}"></div>`;
 }
+const p2=n=>String(n).padStart(2,'0');
+const isoD=(y,m,d)=>`${y}-${p2(m+1)}-${p2(d)}`;
+const dmDe=iso=>(+iso.slice(5,7)-1)*100+(+iso.slice(8,10));
+const brD=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
+const emDia=()=>S.modo==='dia'&&META.temData;
+const cutAtivo=()=>!emDia()&&META.temData&&META.parcial&&!S.mesCheio&&S.m1===META.cutM;
+function rng(){return emDia()?{m0:+S.d0.slice(5,7)-1,m1:+S.d1.slice(5,7)-1}:{m0:S.m0,m1:S.m1}}
+function noPeriodo(r){
+  if(emDia())return r.dm>=dmDe(S.d0)&&r.dm<=dmDe(S.d1);
+  if(r.mes<S.m0||r.mes>S.m1)return false;
+  if(cutAtivo()&&r.mes===META.cutM&&r.dm>META.cut)return false;
+  return true;
+}
 function monthSeries(rows){
-  const ms=[];for(let m=S.m0;m<=S.m1;m++)if(META.months.includes(m))ms.push(m);
+  const R=rng(),ms=[];for(let m=R.m0;m<=R.m1;m++)if(META.months.includes(m))ms.push(m);
   const g=group(rows,r=>r.mes);
   return {ms,t:ms.map(m=>g.get(m)||Z())};
 }
@@ -571,6 +611,7 @@ function vResumo(){
   h+=`<div class="card"><div class="ch"><h3>${mt==='b'?'Receita líquida por mês':mt==='q'?'Litros por mês':mt==='p'?'Preço médio por mês (R$/L)':'MC % (margem de contribuição) por mês'}</h3>`;
   if(opts.length>1)h+=`<div class="seg">${opts.map(o=>`<button data-metric="${o[0]}" aria-pressed="${mt===o[0]}">${o[1]}</button>`).join('')}</div>`;
   h+=`</div>${chartBox('main',cfg,mt!=='m')}${mt==='m'?`<p class="note">MC % = margem de contribuição ÷ receita líquida do mês. Existe apenas para ${META.y1}.</p>`:''}</div>`;
+  h+=cardDia();
   h+=blocosResumo();
   const ordered=cl.sort((x,y)=>y.b-x.b), tb=C.totAll.b;
   h+=`<div class="card"><h3 style="margin-bottom:10px">Clientes</h3><div class="tw"><table><thead><tr><th>Cliente</th><th class="r">${META.y1}</th><th class="r">Var.</th><th class="r hm">% total</th>${META.temMc?'<th class="r hm">MC %</th>':''}</tr></thead><tbody>${ordered.filter(x=>x.a||x.b).map(x=>`<tr class="row" data-go="${esc(x.name)}"><td>${esc(x.name)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td><td class="r hm">${tb>0?fP(x.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${x.b>0?fP(x.mc/x.b):'—'}</td>`:''}</tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:8px">Toque em um cliente para ver a análise completa.</p></div>`;
@@ -645,7 +686,7 @@ function diagnostico(){
   const L=[];                                                    /* {k:'g'|'y'|'', t:texto} */
   const add=(k,t)=>L.push(li(k,t));
   let dup=0;const seen=new Set();
-  R.forEach(r=>{const k=[r.cli,r.cod,r.mes,r.itemc,r.item,r.linha,r.fam,r.uf,r.emp,r.a,r.b,r.qa,r.qb,r.mc].join(SEP);if(seen.has(k))dup++;else seen.add(k)});
+  R.forEach(r=>{const k=[r.cli,r.cod,r.mes,r.dm,r.itemc,r.item,r.linha,r.fam,r.uf,r.emp,r.a,r.b,r.qa,r.qb,r.mc].join(SEP);if(seen.has(k))dup++;else seen.add(k)});
   dup?add('y',`<b>${N(dup)}</b> linhas exatamente duplicadas. Foram mantidas, porque a base não traz número de nota para confirmar se são repetidas.`):add('g','Nenhuma linha exatamente duplicada.');
   const nA=cnt(r=>r.a<0),nB=cnt(r=>r.b<0);
   (nA||nB)?add('y',`<b>${N(nA)}</b> linhas com receita negativa em ${y0} (${fC(val(r=>r.a<0,'a'))}) e <b>${N(nB)}</b> em ${y1} (${fC(val(r=>r.b<0,'b'))}). São devoluções maiores que a venda do item no mês e entram no líquido.`):add('g','Nenhuma linha com receita negativa.');
@@ -676,7 +717,15 @@ function diagnostico(){
     (mA||mB)?add('y',`${mA?`<b>${N(mA)}</b> linhas têm MC, mas receita zero em ${y1} (ajustes).`:''} ${mB?`<b>${N(mB)}</b> linhas com receita estão sem MC.`:''} A MC % considera todas as linhas.`):add('g',`A MC está preenchida em todas as linhas com receita em ${y1}.`);
   }
   if(META.ignoradas.length)add('y',`Colunas da planilha que o dashboard <b>não usa</b>: ${META.ignoradas.map(esc).join(', ')}.`);
-  add('y','<b>Não está na planilha:</b> meta de vendas, custo e margem bruta (retirados da versão publicada), cidade, dia da venda e a causa das variações. Por isso não há atingimento de meta, análise por cidade ou por dia.');
+  if(META.temData){
+    const f=k=>`${String(k%100).padStart(2,'0')}/${String(Math.floor(k/100)%100).padStart(2,'0')}/${Math.floor(k/10000)}`;
+    add('g',`Datas de faturamento de <b>${f(META.dmin)}</b> a <b>${f(META.dmax)}</b>. A última data de ${y1} é <b>${String(META.cutD).padStart(2,'0')}/${String(META.cutM+1).padStart(2,'0')}/${y1}</b>.`);
+    META.semData?add('y',`<b>${N(META.semData)}</b> linhas sem data de faturamento válida. Entram no filtro por mês, mas ficam de fora do filtro por dia.`):add('g','Todas as linhas têm data de faturamento válida.');
+    const dif=cnt(r=>r.dm>=0&&Math.floor(r.dm/100)!==r.mes);
+    dif?add('y',`<b>${N(dif)}</b> linhas em que o mês da coluna Mês é diferente do mês da data. O filtro por mês usa a coluna Mês; o filtro por dia usa a data.`):add('g','O mês da coluna Mês bate com a data de faturamento em todas as linhas.');
+    if(META.parcial)add('y',`${MESC[META.cutM]}/${y1} está incompleto (dados até ${String(META.cutD).padStart(2,'0')}/${String(META.cutM+1).padStart(2,'0')}). No filtro por mês, ${MESC[META.cutM]}/${y0} é comparado só até o mesmo dia.`);
+  }else add('y','A planilha não tem coluna de data de faturamento. Sem ela, não há filtro por dia.');
+  add('y','<b>Não está na planilha:</b> meta de vendas, cidade e a causa das variações. Por isso não há atingimento de meta nem análise por cidade. Custo, comissão, frete e margem bruta são removidos antes de publicar.');
   return L.join('');
 }
 function vBase(){
@@ -685,6 +734,7 @@ function vBase(){
   const tiles=`<div class="kpis">${kpi('Linhas',N(R.length),'cliente × item × mês')}${kpi('Meses',String(META.months.length),`${MES[META.months[0]]} a ${MES[META.months[META.months.length-1]]}, ${y0} e ${y1}`)}${kpi('Clientes',String(META.clientes.length),cods?`${N(cods)} códigos únicos`:'grupos (Matriz Razão)')}${kpi('Estados e marcas',`${META.ufs.length} · ${META.emps.length}`,`${META.ufs.length} estados · ${META.emps.length} marcas`)}${kpi('Produtos',`${N(fams)} famílias`,`${N(itens)} itens`)}</div>`;
   const regras=[
     li('',`Receita = coluna <b>R$ Líquido</b>. Comparação do mesmo período: ${MES[META.months[0]]}–${MES[META.months[META.months.length-1]]} de ${y1} contra o mesmo intervalo de ${y0}.`),
+    ...(META.temData?[li('',`Período: <b>Por mês</b> usa a coluna Mês; <b>Por dia</b> usa a data de faturamento e compara com as mesmas datas de ${y0}. Quando o último mês de ${y1} está incompleto, o mês de ${y0} é cortado no mesmo dia (dá para comparar com o mês inteiro no aviso).`)]:[]),
     li('',`Cliente ativo = receita líquida maior que zero em ${y1}. Cliente é o grupo (Matriz Razão); o filtro Cliente também mostra cada código.`),
     li('',`Marca = coluna <b>Grupo Empresa</b>. Tendência da marca: crescendo com variação de +2% ou mais, caindo com −2% ou menos.`),
     li('',`Situação de cliente ou família: <b>Novo</b> (sem compra em ${y0}), <b>Perdido</b> (sem compra em ${y1}), <b>Em queda</b> (mais de 10% abaixo), <b>Em alta</b> (mais de 10% acima), <b>Estável</b>.`),
@@ -717,28 +767,79 @@ function drawFilters(){
     }
     h+=`<label class="full">Cliente<select id="f-cli">${o}</select></label>`;
   }
-  if(META.months.length>1){const mo=META.months.map(m=>[m,MESC[m]]);h+=sel('f-m0','De',mo,S.m0)+sel('f-m1','Até',mo,S.m1)}
+  if(META.temData){h+=`<div class="full"><div class="seg" role="group" aria-label="Forma de escolher o período"><button data-modo="mes" aria-pressed="${S.modo==='mes'}">Por mês</button><button data-modo="dia" aria-pressed="${S.modo==='dia'}">Por dia</button></div></div>`}
+  if(emDia()){
+    const mi=`${META.y1}-01-01`,ma=`${META.y1}-12-31`;
+    h+=`<label>De<input type="date" id="f-d0" value="${S.d0}" min="${mi}" max="${ma}"></label><label>Até<input type="date" id="f-d1" value="${S.d1}" min="${mi}" max="${ma}"></label>`;
+    h+=`<div class="full atalhos">${[['mes','Mês atual'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['ant','Mês anterior'],['ano','Ano até hoje']].map(a=>`<button data-atalho="${a[0]}">${a[1]}</button>`).join('')}</div>`;
+  }else if(META.months.length>1){const mo=META.months.map(m=>[m,MESC[m]]);h+=sel('f-m0','De',mo,S.m0)+sel('f-m1','Até',mo,S.m1)}
   $('#filters').innerHTML=h;
 }
 function drawTabs(){$('#tabs').innerHTML=TABS.map(t=>`<button class="tab" role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join('')}
 const k0=()=>S.cli.slice(2);
 function draw(){
-  const rowsAll=DATA.rows.filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&r.mes>=S.m0&&r.mes<=S.m1);
+  const rowsAll=DATA.rows.filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
   const k=S.cli.slice(2), rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:r.cod===k);
   C={rows,rowsAll,tot:sum(rows),totAll:sum(rowsAll),codSel:S.cli[0]==='c'?k:''};
   drawFilters();drawTabs();TABLES={};CHARTS={};
   const lbl=S.m0===S.m1?MESC[S.m0]:`${MESC[S.m0]}–${MESC[S.m1]}`.toLowerCase();
-  $('#sub').textContent=`Receita líquida · ${lbl} ${META.y1} contra ${META.y0}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
+  $('#sub').textContent=`Receita líquida · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
+  $('#aviso').innerHTML=avisoPeriodo();
   const tab=TABS.find(t=>t[0]===S.tab)||TABS[0];
   $('#view').innerHTML=rows.length?tab[2]():'<div class="card">Sem dados para os filtros escolhidos.</div>';
   Object.keys(TABLES).forEach(drawTable);
   drawCharts();
 }
+function avisoPeriodo(){
+  if(!META.temData)return '';
+  const fim=`${p2(META.cutD)}/${p2(META.cutM+1)}`, mes=MESC[META.cutM];
+  if(emDia()){
+    if(dmDe(S.d1)>META.cut)return `<span>Os dados de ${META.y1} vão até <b>${fim}/${META.y1}</b>. Dias depois dessa data aparecem sem faturamento.</span>`;
+    return '';
+  }
+  if(!(META.parcial&&S.m1===META.cutM))return '';
+  return S.mesCheio
+    ?`<span><b>${mes}/${META.y1}</b> está incompleto (dados até <b>${fim}</b>) e foi comparado com o mês inteiro de ${META.y0}.</span><button data-cheio="1">Comparar só até ${fim}</button>`
+    :`<span><b>${mes}/${META.y1}</b> tem dados até <b>${fim}</b>. Por isso ${mes}/${META.y0} foi comparado só de 01/${p2(META.cutM+1)} a ${fim}, para ficar no mesmo período.</span><button data-cheio="1">Comparar com o mês inteiro de ${META.y0}</button>`;
+}
+function diaSemana(y,m,d){return ['dom','seg','ter','qua','qui','sex','sáb'][new Date(Date.UTC(y,m,d)).getUTCDay()]}
+function cardDia(){
+  if(!META.temData)return '';
+  let ini,fim;
+  if(emDia()){ini=new Date(S.d0+'T00:00:00Z');fim=new Date(S.d1+'T00:00:00Z')}
+  else{
+    ini=new Date(Date.UTC(META.y1,S.m0,1));
+    fim=new Date(Date.UTC(META.y1,S.m1+1,0));
+    if(S.m1===META.cutM&&META.parcial)fim=new Date(Date.UTC(META.y1,META.cutM,META.cutD));
+  }
+  const n=Math.round((fim-ini)/864e5)+1;
+  if(n<1)return '';
+  if(n>45)return `<div class="card"><h3>Faturamento por dia</h3><p class="note">Escolha um período de até 45 dias (modo <b>Por dia</b>) para ver o gráfico dia a dia.</p></div>`;
+  const g=group(C.rows,r=>r.dm),a=[],b=[],dd=[];
+  for(let i=0;i<n;i++){const t=new Date(ini.getTime()+i*864e5),k=t.getUTCMonth()*100+t.getUTCDate(),o=g.get(k)||Z();a.push(o.a);b.push(o.b);dd.push([t.getUTCMonth(),t.getUTCDate()])}
+  const n0=a.filter(v=>v!==0).length,n1=b.filter(v=>v!==0).length;
+  const cfg={ms:dd.map((_,i)=>i),a,b,fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Faturamento por dia',h:200,
+    lab:i=>dd[i][1]===1||i===0?`${dd[i][1]}/${dd[i][0]+1}`:String(dd[i][1]),
+    tip:i=>`${p2(dd[i][1])}/${p2(dd[i][0]+1)} · ${diaSemana(META.y1,dd[i][0],dd[i][1])} (${META.y1}), ${diaSemana(META.y0,dd[i][0],dd[i][1])} (${META.y0})`};
+  return `<div class="card"><h3>Faturamento por dia</h3>${chartBox('dia',cfg,true)}<p class="note">Dias com faturamento: ${n1} em ${META.y1} e ${n0} em ${META.y0}. A comparação é pela mesma data, então os dias da semana não coincidem entre os anos.</p></div>`;
+}
 function drawCharts(){document.querySelectorAll('[data-chart]').forEach(el=>{const c=CHARTS[el.dataset.chart];if(c)drawChart(el,c)})}
 
+function atalho(k){
+  const y=META.y1,ult=new Date(Date.UTC(y,META.cutM,META.cutD)),iso=t=>isoD(t.getUTCFullYear(),t.getUTCMonth(),t.getUTCDate());
+  const ini=new Date(Date.UTC(y,0,1)),mx=(t,min)=>t<min?min:t;
+  if(k==='mes'){S.d0=isoD(y,META.cutM,1);S.d1=iso(ult)}
+  else if(k==='7'){S.d0=iso(mx(new Date(ult-6*864e5),ini));S.d1=iso(ult)}
+  else if(k==='30'){S.d0=iso(mx(new Date(ult-29*864e5),ini));S.d1=iso(ult)}
+  else if(k==='ant'){const m=META.cutM>0?META.cutM-1:0;S.d0=isoD(y,m,1);S.d1=iso(new Date(Date.UTC(y,m+1,0)))}
+  else if(k==='ano'){S.d0=iso(ini);S.d1=iso(ult)}
+}
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli]');if(!t)return;
-  if(t.dataset.tab){S.tab=t.dataset.tab;draw();scrollTo({top:0})}
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio]');if(!t)return;
+  if(t.dataset.modo){S.modo=t.dataset.modo;draw()}
+  else if(t.dataset.cheio){S.mesCheio=!S.mesCheio;draw()}
+  else if(t.dataset.atalho){atalho(t.dataset.atalho);draw()}
+  else if(t.dataset.tab){S.tab=t.dataset.tab;draw();scrollTo({top:0})}
   else if(t.dataset.setcli){S.cli=t.dataset.setcli;const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k]);draw();scrollTo({top:0})}
   else if(t.dataset.metric){S.metric=t.dataset.metric;draw()}
   else if(t.dataset.sort){const [id,k]=t.dataset.sort.split('|'),s=S.sort[id];S.sort[id]={k,d:s.k===k?-s.d:(k==='name'?1:-1)};drawTable(id)}
@@ -752,6 +853,8 @@ document.addEventListener('change',e=>{
   const id=e.target.id;
   if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
   else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
+  else if(id==='f-d0'){if(!e.target.value)return;S.d0=e.target.value;if(S.d1<S.d0)S.d1=S.d0}
+  else if(id==='f-d1'){if(!e.target.value)return;S.d1=e.target.value;if(S.d0>S.d1)S.d0=S.d1}
   else return;
   draw();
 });
@@ -780,6 +883,15 @@ function iniciar(tabela,nome,modificado){
    g.forEach(o=>{const uf=Object.entries(o.uf).sort((x,y)=>y[1]-x[1])[0][0];(META.cods[o.cli]=META.cods[o.cli]||[]).push({cod:o.cod,uf});META.codMat[o.cod]=o.cli});
    Object.values(META.cods).forEach(a=>a.sort((x,y)=>x.cod.localeCompare(y.cod,'pt',{numeric:true})));META.codsTotal=g.size}
   S.m0=META.months[0];S.m1=META.months[META.months.length-1];
+  META.temData=d.rows.some(r=>r.dm>=0&&r.ano>0);META.semData=d.semData;
+  if(META.temData){
+    let cut=-1,mn=99999999,mx=0;
+    d.rows.forEach(r=>{if(r.dm<0)return;const k=r.ano*10000+(Math.floor(r.dm/100)+1)*100+r.dm%100;if(k<mn)mn=k;if(k>mx)mx=k;if(r.ano===d.y1&&r.dm>cut)cut=r.dm});
+    META.dmin=mn;META.dmax=mx;META.cut=cut;META.cutM=cut<0?-1:Math.floor(cut/100);META.cutD=cut<0?0:cut%100;
+    META.parcial=cut>=0&&META.cutD<new Date(Date.UTC(d.y1,META.cutM+1,0)).getUTCDate();
+    if(cut>=0){S.d0=isoD(d.y1,META.cutM,1);S.d1=isoD(d.y1,META.cutM,META.cutD)}else META.temData=false;
+  }
+  S.modo='mes';S.mesCheio=false;
   $('#loader').innerHTML='';$('#main').hidden=false;
   $('#foot').textContent=`Base: ${nome}${modificado?' · atualizada em '+modificado:''} · ${NUM.format(d.rows.length)} linhas`;
   draw();
@@ -810,8 +922,16 @@ async function chaveDe(usuario,senha){
   return crypto.subtle.deriveKey({name:'PBKDF2',salt:te.encode('dashboard-vendas:v1:'+u),iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['decrypt']);
 }
 async function abrir(u8,key){try{return await crypto.subtle.decrypt({name:'AES-GCM',iv:u8.slice(4,16)},key,u8.slice(16))}catch(_){return null}}
+async function lerPacote(pt){
+  const u=new Uint8Array(pt);
+  if(u[0]===0x1f&&u[1]===0x8b){
+    const txt=await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    return lerCsv(new TextDecoder('utf-8').decode(txt).replace(/^\ufeff/,''));
+  }
+  return lerXlsx(pt);
+}
 async function entrar(pt,mod){
-  const tabela=await lerXlsx(pt);
+  const tabela=await lerPacote(pt);
   $('#sair').hidden=false;
   iniciar(tabela,'dados.enc (criptografado)',mod);
 }
