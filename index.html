@@ -99,6 +99,7 @@ input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(
 .notice button{height:30px}
 .notice:empty{display:none}
 .tms{display:none}
+.empbar{margin-bottom:12px}.empbar .seg button{display:inline-flex;align-items:center;gap:6px}.empbar .sq{width:10px;height:10px;border-radius:2px;display:inline-block;margin:0}.empbar button[aria-pressed=true] .sq{box-shadow:0 0 0 2px #fff}
 .sec2{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
 .mh2{font-size:12.5px;color:var(--ink2);margin:-2px 0 6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .tvhint{display:none;position:fixed;right:22px;bottom:20px;z-index:200;padding:10px 14px;border-radius:12px;background:rgba(12,12,12,.94);border:1px solid #444;color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:opacity .6s}
@@ -672,10 +673,15 @@ function vClientes(){
     return `<details class="cli" data-cli="${esc(c.name)}" ${op?'open':''}><summary><span class="nm">${esc(c.name)}</span><span>${vtag(c.a,c.b)}</span><span class="sm"><b>${fC(c.b)}</b> em ${META.y1} · ${META.y0}: ${fC(c.a)} · ${tb>0?fP(c.b/tb):'—'} da carteira ${META.temMc&&c.b>0?'· MC '+fP(c.mc/c.b):''}${META.temQtd?` · ${fL(c.qb)} ${vtag(c.qa,c.qb)}`:''} · ${stag(c.a,c.b)}</span><span class="bar"><i style="width:${tb>0?Math.min(100,c.b/tb*100):0}%"></i></span></summary>${body}</details>`;
   }).join('');
 }
-const vFam=()=>rankCard('fam','Famílias comerciais',ents(group(C.rows,r=>r.fam),k=>({sub:''})),r=>r.fam,{search:true});
-const vItem=()=>rankCard('item','Itens',ents(group(C.rows,r=>r.item+'§'+r.itemc),k=>({name:k.split('§')[0],sub:k.split('§')[1]})).map(e=>e),r=>r.item+'§'+r.itemc,{search:true});
-const vLinha=()=>rankCard('linha','Linha comercial',ents(group(C.rows,r=>r.linha)),r=>r.linha)+(META.emps.length>1?rankCard('emp','Empresa do grupo',ents(group(C.rows,r=>r.emp)),r=>r.emp):'');
-const vUf=()=>rankCard('uf','Estado',ents(group(C.rows,r=>r.uf)),r=>r.uf);
+function empBar(){
+  if(META.emps.length<2)return '';
+  const b=(v,l,i)=>`<button data-emp="${esc(v)}" aria-pressed="${S.emp===v}">${i>=0?`<i class="sq" style="background:var(--b${i%4})"></i>`:''}${esc(l)}</button>`;
+  return `<div class="empbar"><div class="seg" role="group" aria-label="Marca">${b('','Ambas',-1)}${META.emps.map((x,i)=>b(x,x,i)).join('')}</div></div>`;
+}
+const vFam=()=>empBar()+rankCard('fam','Famílias comerciais',ents(group(C.rows,r=>r.fam),k=>({sub:''})),r=>r.fam,{search:true});
+const vItem=()=>empBar()+rankCard('item','Itens',ents(group(C.rows,r=>r.item+'§'+r.itemc),k=>({name:k.split('§')[0],sub:k.split('§')[1]})).map(e=>e),r=>r.item+'§'+r.itemc,{search:true});
+const vLinha=()=>empBar()+rankCard('linha','Linha comercial',ents(group(C.rows,r=>r.linha)),r=>r.linha)+(META.emps.length>1?rankCard('emp','Empresa do grupo',ents(group(C.rows,r=>r.emp)),r=>r.emp):'');
+const vUf=()=>empBar()+rankCard('uf','Estado',ents(group(C.rows,r=>r.uf)),r=>r.uf);
 /* ---------- aba MARCA (a marca é a coluna "Grupo Empresa" da planilha) ---------- */
 function vMarca(){
   const rows=C.rows,t=C.tot,y0=META.y0,y1=META.y1,SEP='\u0001';
@@ -868,7 +874,8 @@ function atalho(k){
   else if(k==='ano'){S.d0=iso(ini);S.d1=iso(ult)}
 }
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm]');if(!t)return;
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm],[data-emp]');if(!t)return;
+  if(t.dataset.emp!==undefined){S.emp=t.dataset.emp;draw();return}
   if(t.dataset.tm){S.tm=t.dataset.tm;draw();return}
   if(t.dataset.modo){S.modo=t.dataset.modo;draw()}
   else if(t.dataset.cheio){S.mesCheio=!S.mesCheio;draw()}
