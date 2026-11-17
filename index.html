@@ -98,6 +98,9 @@ input[type=date]{font:14px system-ui,sans-serif;color:var(--ink);background:var(
 .notice{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--ink2);display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
 .notice button{height:30px}
 .notice:empty{display:none}
+.tms{display:none}
+.sec2{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.mh2{font-size:12.5px;color:var(--ink2);margin:-2px 0 6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .tvhint{display:none;position:fixed;right:22px;bottom:20px;z-index:200;padding:10px 14px;border-radius:12px;background:rgba(12,12,12,.94);border:1px solid #444;color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:opacity .6s}
 .tvhint b,.tvhint span{display:block}.tvhint span{font-size:11px;color:#bdbdbd;margin-top:2px}
 body.tv .tvhint{display:block}body.tv .tvhint.off{opacity:0;pointer-events:none}
@@ -168,6 +171,8 @@ body.tv .seg button{height:40px;font-size:14px}
 .plan small{display:none;color:var(--muted);font-weight:600;margin-right:4px}
 @media (max-width:640px){.plan .ph{display:none}.plan .pr{grid-template-columns:minmax(0,1fr)}.plan small{display:inline}}
 @media (max-width:640px){
+  .tms{display:inline-flex}
+  .tm-r .cl,.tm-l .cr{display:none}
   body{padding-top:12px}
   header h1{font-size:19px}
   .hm{display:none}
@@ -356,6 +361,7 @@ const fR=v=>BRL.format(Math.round(v));
 const fC=v=>{const a=Math.abs(v),s=v<0?'−':'';if(a>=1e6)return s+'R$ '+(a/1e6).toFixed(2).replace('.',',')+' mi';if(a>=1e4)return s+'R$ '+Math.round(a/1e3)+' mil';return s+fR(a)};
 const fD=v=>(v>=0?'+':'−')+fC(Math.abs(v));
 const fL=v=>NUM.format(Math.round(v))+' L';
+const fmtL=(v,ax)=>ax?(Math.abs(v)>=1000?NUM.format(Math.round(v/1000))+' mil':NUM.format(v)):fL(v);
 const fP=(x,d=1)=>(x*100).toFixed(d).replace('.',',')+'%';
 const pct=(a,b)=>a>0?b/a-1:null;
 const fV=p=>p==null?'novo':(p>=0?'+':'−')+Math.abs(p*100).toFixed(1).replace('.',',')+'%';
@@ -371,7 +377,7 @@ function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let
 const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
 const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-const S={tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+const S={tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
 let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
 /* =====================================================================
@@ -467,12 +473,12 @@ function monthSeries(rows){
 function rankCard(id,title,entries,keyFn,opt={}){
   TABLES[id]={entries,keyFn,opt,total:C.tot};
   S.sort[id]=S.sort[id]||{k:'b',d:-1};
-  return `<div class="card"><div class="ch"><h3>${title}</h3>${opt.search?`<input class="srch" type="search" placeholder="Buscar…" data-q="${id}" value="${esc(S.q[id]||'')}" aria-label="Buscar">`:''}</div><div id="t-${id}"></div></div>`;
+  return `<div class="card"><div class="ch"><h3>${title}</h3>${META.temQtd?`<div class="seg tms" role="group" aria-label="Mostrar na tabela"><button data-tm="r" aria-pressed="${S.tm==='r'}">Receita</button><button data-tm="l" aria-pressed="${S.tm==='l'}">Litros</button></div>`:''}${opt.search?`<input class="srch" type="search" placeholder="Buscar…" data-q="${id}" value="${esc(S.q[id]||'')}" aria-label="Buscar">`:''}</div><div id="t-${id}"></div></div>`;
 }
 function sortVal(e,k,T){
   switch(k){case'name':return e.name.toLowerCase();case'a':return e.a;case'b':return e.b;
     case'var':{const p=pct(e.a,e.b);return p==null?(e.b>0?1e9:-1e9):p}
-    case'share':return e.b;case'qb':return e.qb;case'mcp':return e.b>0?e.mc/e.b:-1;default:return e.b}}
+    case'share':return e.b;case'qa':return e.qa;case'qb':return e.qb;case'qvar':{const p=pct(e.qa,e.qb);return p==null?(e.qb>0?1e9:-1e9):p}case'mcp':return e.b>0?e.mc/e.b:-1;default:return e.b}}
 function drawTable(id){
   const T=TABLES[id],el=$('#t-'+id);if(!el)return;
   const so=S.sort[id],q=(S.q[id]||'').toLowerCase().trim();
@@ -480,13 +486,14 @@ function drawTable(id){
   list.sort((x,y)=>{const a=sortVal(x,so.k),b=sortVal(y,so.k);return (a<b?-1:a>b?1:0)*so.d});
   const lim=S.lim[id]||25,shown=list.slice(0,lim),tb=T.total.b;
   const th=(k,l,cl='')=>`<th class="${cl} ${so.k===k?'on':''}" data-sort="${id}|${k}">${l}${so.k===k?(so.d<0?' ↓':' ↑'):''}</th>`;
-  let h=`<div class="tw"><table><thead><tr>${th('name','Nome')}${th('a',META.y0,'r hm')}${th('b',META.y1,'r')}${th('var','Var.','r')}${th('share','% do total','r hm')}${META.temMc?th('mcp','MC %','r hm'):''}<th class="hm">Situação</th></tr></thead><tbody>`;
+  const Q=META.temQtd, nc=1+3+(Q?3:0)+1+(META.temMc?1:0)+1;
+  let h=`<div class="tw tm-${S.tm}"><table><thead><tr>${th('name','Nome')}${th('a',Q?'Receita '+META.y0:META.y0,'r hm cr')}${th('b',Q?'Receita '+META.y1:META.y1,'r cr')}${th('var',Q?'Var. receita':'Var.','r cr')}${Q?th('qa','Litros '+META.y0,'r hm cl')+th('qb','Litros '+META.y1,'r cl')+th('qvar','Var. litros','r cl'):''}${th('share','% da receita','r hm')}${META.temMc?th('mcp','MC %','r hm'):''}<th class="hm">Situação</th></tr></thead><tbody>`;
   for(const e of shown){
     const ek=id+'|'+e.key, op=S.exp.has(ek);
-    h+=`<tr class="row ${op?'open':''}" data-exp="${esc(ek)}"><td>${esc(e.name)}${e.sub?`<span class="sub">${esc(e.sub)}</span>`:''}</td><td class="r hm">${fC(e.a)}</td><td class="r">${fC(e.b)}</td><td class="r">${vtag(e.a,e.b)}</td><td class="r hm">${tb>0?fP(e.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${e.b>0?fP(e.mc/e.b):'—'}</td>`:''}<td class="hm">${stag(e.a,e.b)}</td></tr>`;
-    if(op)h+=`<tr class="det"><td colspan="7">${detalhe(T,e)}</td></tr>`;
+    h+=`<tr class="row ${op?'open':''}" data-exp="${esc(ek)}"><td>${esc(e.name)}${e.sub?`<span class="sub">${esc(e.sub)}</span>`:''}</td><td class="r hm cr">${fC(e.a)}</td><td class="r cr">${fC(e.b)}</td><td class="r cr">${vtag(e.a,e.b)}</td>${Q?`<td class="r hm cl">${fL(e.qa)}</td><td class="r cl">${fL(e.qb)}</td><td class="r cl">${vtag(e.qa,e.qb)}</td>`:''}<td class="r hm">${tb>0?fP(e.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${e.b>0?fP(e.mc/e.b):'—'}</td>`:''}<td class="hm">${stag(e.a,e.b)}</td></tr>`;
+    if(op)h+=`<tr class="det"><td colspan="${nc}">${detalhe(T,e)}</td></tr>`;
   }
-  if(!shown.length)h+=`<tr><td colspan="7" class="note">Nada encontrado.</td></tr>`;
+  if(!shown.length)h+=`<tr><td colspan="${nc}" class="note">Nada encontrado.</td></tr>`;
   h+='</tbody></table></div>';
   if(list.length>lim)h+=`<button class="more" data-more="${id}">Mostrar mais (${list.length-lim})</button>`;
   el.innerHTML=h;
@@ -497,7 +504,7 @@ function detalhe(T,e){
   if(META.temQtd)h+=`<div class="fact"><span>Litros ${META.y1}</span>${fL(e.qb)}</div><div class="fact"><span>Preço médio ${META.y1}</span>${e.qb>0?BRL2.format(e.b/e.qb)+'/L':'—'}</div>`;
   if(META.temMc)h+=`<div class="fact"><span>MC % ${META.y1}</span>${e.b>0?fP(e.mc/e.b):'—'} · ${fR(e.mc)}</div>`;
   h+=`<div class="fact"><span>Situação</span>${stag(e.a,e.b)}</div></div>`;
-  h+=`<div class="tw"><table><thead><tr><th>Cliente</th><th class="r">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th></tr></thead><tbody>${byC.map(c=>`<tr><td>${esc(c.name)}</td><td class="r">${fC(c.a)}</td><td class="r">${fC(c.b)}</td><td class="r">${vtag(c.a,c.b)}</td></tr>`).join('')}</tbody></table></div>`;
+  h+=`<div class="tw"><table><thead><tr><th>Cliente</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${META.y0}</th><th class="r">Litros ${META.y1}</th><th class="r">Var. L</th>`:''}</tr></thead><tbody>${byC.map(c=>`<tr><td>${esc(c.name)}</td><td class="r hm">${fC(c.a)}</td><td class="r">${fC(c.b)}</td><td class="r">${vtag(c.a,c.b)}</td>${META.temQtd?`<td class="r hm">${fL(c.qa)}</td><td class="r">${fL(c.qb)}</td><td class="r">${vtag(c.qa,c.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
   return h;
 }
 
@@ -627,7 +634,7 @@ function vResumo(){
   const mt=opts.some(o=>o[0]===S.metric)?S.metric:'b';
   let cfg;
   if(mt==='b')cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Receita líquida por mês'};
-  else if(mt==='q')cfg={ms,a:ser.map(o=>o.qa),b:ser.map(o=>o.qb),fmt:(v,ax)=>ax?(Math.abs(v)>=1000?NUM.format(Math.round(v/1000))+' mil':NUM.format(v)):fL(v),label:'Litros por mês'};
+  else if(mt==='q')cfg={ms,a:ser.map(o=>o.qa),b:ser.map(o=>o.qb),fmt:fmtL,label:'Litros por mês'};
   else if(mt==='p')cfg={ms,a:ser.map(o=>o.qa>0?o.a/o.qa:0),b:ser.map(o=>o.qb>0?o.b/o.qb:0),fmt:(v,ax)=>ax?v.toFixed(2).replace('.',','):BRL2.format(v),label:'Preço médio por mês'};
   else cfg={ms,a:null,b:ser.map(o=>o.b>0?o.mc/o.b:0),fmt:v=>fP(v),label:'MC % por mês',extra:i=>`MC: ${fC(ser[i].mc)} sobre receita de ${fC(ser[i].b)}`};
   cfg.hl=true;
@@ -650,17 +657,19 @@ function vClientes(){
     if(op){
       const rows=C.rows.filter(r=>r.cli===c.name),{ms,t:ser}=monthSeries(rows);
       const cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Receita mensal de '+c.name,h:200,hl:true};
+      const cfgL={ms,a:ser.map(o=>o.qa),b:ser.map(o=>o.qb),fmt:fmtL,label:'Litros por mês de '+c.name,h:200,hl:true};
       const cfgP={ms,a:ser.map(o=>o.qa>0?o.a/o.qa:0),b:ser.map(o=>o.qb>0?o.b/o.qb:0),fmt:(v,ax)=>ax?v.toFixed(2).replace('.',','):BRL2.format(v),label:'Preço médio mensal de '+c.name,h:200,hl:true};
       const topF=ins.fam.filter(x=>x.a||x.b).sort((x,y)=>Math.max(y.a,y.b)-Math.max(x.a,x.b)).slice(0,12);
       const ufs=ents(group(rows,r=>r.uf)).filter(x=>x.b>0).sort((x,y)=>y.b-x.b);
       body=`<div class="cbody"><h4 class="sec" style="margin-top:0">Insights</h4><ul class="ins">${ins.html}</ul>
       <h4 class="sec">Receita por mês</h4>${chartBox('c:'+c.name,cfg,true)}
+      ${META.temQtd?`<h4 class="sec">Litros por mês</h4>${chartBox('l:'+c.name,cfgL,true)}`:''}
       ${META.temQtd?`<h4 class="sec">Preço médio por mês (R$/L)</h4>${chartBox('p:'+c.name,cfgP,true)}`:''}
-      <h4 class="sec">Principais famílias</h4><div class="tw"><table><thead><tr><th>Família</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th></tr></thead><tbody>${topF.map(f=>`<tr><td>${esc(f.name)}</td><td class="r hm">${fC(f.a)}</td><td class="r">${fC(f.b)}</td><td class="r">${vtag(f.a,f.b)}</td></tr>`).join('')}</tbody></table></div>
-      ${(()=>{const cs=ents(group(rows,r=>r.cod)).filter(x=>(x.a||x.b)&&x.key);return cs.length>1?`<h4 class="sec">Por código de cliente</h4><div class="tw"><table><thead><tr><th>Código</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temMc?'<th class="r hm">MC %</th>':''}</tr></thead><tbody>${cs.sort((x,y)=>y.b-x.b).map(x=>`<tr class="row" data-setcli="c:${esc(x.key)}"><td>${esc(x.key)}<span class="sub">${esc(((META.cods[c.name]||[]).find(y=>y.cod===x.key)||{}).uf||'')}</span></td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td>${META.temMc?`<td class="r hm">${x.b>0?fP(x.mc/x.b):'—'}</td>`:''}</tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:6px">Toque em um código para analisar só ele.</p>`:''})()}
+      <h4 class="sec">Principais famílias</h4><div class="tw"><table><thead><tr><th>Família</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${META.y0}</th><th class="r">Litros ${META.y1}</th><th class="r hm">Var. L</th>`:''}</tr></thead><tbody>${topF.map(f=>`<tr><td>${esc(f.name)}</td><td class="r hm">${fC(f.a)}</td><td class="r">${fC(f.b)}</td><td class="r">${vtag(f.a,f.b)}</td>${META.temQtd?`<td class="r hm">${fL(f.qa)}</td><td class="r">${fL(f.qb)}</td><td class="r hm">${vtag(f.qa,f.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div>
+      ${(()=>{const cs=ents(group(rows,r=>r.cod)).filter(x=>(x.a||x.b)&&x.key);return cs.length>1?`<h4 class="sec">Por código de cliente</h4><div class="tw"><table><thead><tr><th>Código</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r">Litros ${META.y1}</th><th class="r hm">Var. L</th>`:''}${META.temMc?'<th class="r hm">MC %</th>':''}</tr></thead><tbody>${cs.sort((x,y)=>y.b-x.b).map(x=>`<tr class="row" data-setcli="c:${esc(x.key)}"><td>${esc(x.key)}<span class="sub">${esc(((META.cods[c.name]||[]).find(y=>y.cod===x.key)||{}).uf||'')}</span></td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td>${META.temQtd?`<td class="r">${fL(x.qb)}</td><td class="r hm">${vtag(x.qa,x.qb)}</td>`:''}${META.temMc?`<td class="r hm">${x.b>0?fP(x.mc/x.b):'—'}</td>`:''}</tr>`).join('')}</tbody></table></div><p class="note" style="margin-top:6px">Toque em um código para analisar só ele.</p>`:''})()}
       ${ufs.length>1?`<h4 class="sec">Por estado</h4><div class="pills">${ufs.map(u=>`<span>${esc(u.name)} · ${fC(u.b)}</span>`).join('')}</div>`:''}</div>`;
     }
-    return `<details class="cli" data-cli="${esc(c.name)}" ${op?'open':''}><summary><span class="nm">${esc(c.name)}</span><span>${vtag(c.a,c.b)}</span><span class="sm"><b>${fC(c.b)}</b> em ${META.y1} · ${META.y0}: ${fC(c.a)} · ${tb>0?fP(c.b/tb):'—'} da carteira ${META.temMc&&c.b>0?'· MC '+fP(c.mc/c.b):''} · ${stag(c.a,c.b)}</span><span class="bar"><i style="width:${tb>0?Math.min(100,c.b/tb*100):0}%"></i></span></summary>${body}</details>`;
+    return `<details class="cli" data-cli="${esc(c.name)}" ${op?'open':''}><summary><span class="nm">${esc(c.name)}</span><span>${vtag(c.a,c.b)}</span><span class="sm"><b>${fC(c.b)}</b> em ${META.y1} · ${META.y0}: ${fC(c.a)} · ${tb>0?fP(c.b/tb):'—'} da carteira ${META.temMc&&c.b>0?'· MC '+fP(c.mc/c.b):''}${META.temQtd?` · ${fL(c.qb)} ${vtag(c.qa,c.qb)}`:''} · ${stag(c.a,c.b)}</span><span class="bar"><i style="width:${tb>0?Math.min(100,c.b/tb*100):0}%"></i></span></summary>${body}</details>`;
   }).join('');
 }
 const vFam=()=>rankCard('fam','Famílias comerciais',ents(group(C.rows,r=>r.fam),k=>({sub:''})),r=>r.fam,{search:true});
@@ -681,24 +690,24 @@ function vMarca(){
   const stack=(yr,key,tot)=>`<div class="srow"><span>${yr}</span><div class="stack">${ord.map(x=>{const p=tot>0?Math.max(0,x[key])/tot:0;return p>0?`<i style="width:${p*100}%;background:${col(x.name)}" title="${esc(x.name)}: ${fP(p)}">${p>=0.08?fP(p,0):''}</i>`:''}).join('')}</div></div>`;
   const tend=p=>p==null?['novo','up']:p>=0.02?['▲ crescendo','up']:p<=-0.02?['▼ caindo','dn']:['estável','neu'];
   const linhas=rank.map(x=>{const p=pct(x.a,x.b),[tx,tc]=tend(p);
-    return `<tr><td><b>${sq(x.name)}${esc(x.name)}</b></td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td><td class="r hm">${t.a>0?fP(x.a/t.a):'—'}</td><td class="r">${t.b>0?fP(x.b/t.b):'—'}</td><td class="r hm">${nCli.get(x.name)||0}</td><td class="hm"><span class="tag ${tc}">${tx}</span></td></tr>`}).join('');
+    return `<tr><td><b>${sq(x.name)}${esc(x.name)}</b></td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td>${META.temQtd?`<td class="r hm">${fL(x.qa)}</td><td class="r">${fL(x.qb)}</td><td class="r">${vtag(x.qa,x.qb)}</td>`:''}<td class="r hm">${t.a>0?fP(x.a/t.a):'—'}</td><td class="r">${t.b>0?fP(x.b/t.b):'—'}</td><td class="r hm">${nCli.get(x.name)||0}</td><td class="hm"><span class="tag ${tc}">${tx}</span></td></tr>`}).join('');
   const card1=`<div class="card"><h3 style="margin-bottom:10px">Participação das marcas na receita líquida</h3>
-    <div class="leg">${ord.map(x=>`<span>${sq(x.name)}${esc(x.name)}</span>`).join('')}</div>${stack(y0,'a',t.a)}${stack(y1,'b',t.b)}
-    <div class="tw" style="margin-top:12px"><table><thead><tr><th>Marca</th><th class="r hm">${y0}</th><th class="r">${y1}</th><th class="r">Var.</th><th class="r hm">Part. ${y0}</th><th class="r">Part. ${y1}</th><th class="r hm">Clientes</th><th class="hm">Tendência</th></tr></thead><tbody>${linhas}</tbody></table></div>
+    <div class="leg">${ord.map(x=>`<span>${sq(x.name)}${esc(x.name)}</span>`).join('')}</div>${META.temQtd?'<div class="sec2">Em receita</div>':''}${stack(y0,'a',t.a)}${stack(y1,'b',t.b)}${META.temQtd?`<div class="sec2">Em litros</div>${stack(y0,'qa',t.qa)}${stack(y1,'qb',t.qb)}`:''}
+    <div class="tw" style="margin-top:12px"><table><thead><tr><th>Marca</th><th class="r hm">${y0}</th><th class="r">${y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${y0}</th><th class="r">Litros ${y1}</th><th class="r">Var. L</th>`:''}<th class="r hm">Part. ${y0}</th><th class="r">Part. ${y1}</th><th class="r hm">Clientes</th><th class="hm">Tendência</th></tr></thead><tbody>${linhas}</tbody></table></div>
     <p class="note" style="margin-top:8px">Clientes = grupos (Matriz) com compra em ${y1}. Tendência: crescendo se a variação for de +2% ou mais, caindo se for de −2% ou menos.</p></div>`;
   const painel=x=>{const {ms,t:ser}=monthSeries(rows.filter(r=>r.emp===x.name));
     const cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Receita mensal da marca '+x.name,h:200,hl:true};
-    return `<div class="pnl"><div class="mh"><b>${sq(x.name)}${esc(x.name)}</b><span class="num">${fC(x.a)} → ${fC(x.b)} ${vtag(x.a,x.b)}</span></div>${chartBox('mk:'+x.name,cfg,false)}</div>`};
+    return `<div class="pnl"><div class="mh"><b>${sq(x.name)}${esc(x.name)}</b><span class="num">${fC(x.a)} → ${fC(x.b)} ${vtag(x.a,x.b)}</span></div>${META.temQtd?`<div class="mh2">Litros: ${fL(x.qa)} → ${fL(x.qb)} ${vtag(x.qa,x.qb)}</div>`:''}${chartBox('mk:'+x.name,cfg,false)}</div>`};
   const card2=`<div class="card"><h3 style="margin-bottom:8px">Receita líquida por mês, por marca</h3><div class="leg"><span><i style="background:var(--y0)"></i>${y0}</span><span><i style="background:var(--y1)"></i>${y1}</span></div><div class="mgrid">${ord.map(painel).join('')}</div></div>`;
   /* clientes por marca */
   const byCli=new Map();
-  group(rows,r=>r.cli+SEP+r.emp).forEach((o,k)=>{const [c,e]=k.split(SEP);let z=byCli.get(c);if(!z){z={name:c,a:0,b:0,m:{}};byCli.set(c,z)}z.a+=o.a;z.b+=o.b;z.m[e]=o.b});
+  group(rows,r=>r.cli+SEP+r.emp).forEach((o,k)=>{const [c,e]=k.split(SEP);let z=byCli.get(c);if(!z){z={name:c,a:0,b:0,qa:0,qb:0,m:{}};byCli.set(c,z)}z.a+=o.a;z.b+=o.b;z.qa+=o.qa;z.qb+=o.qb;z.m[e]=o.b});
   const cl=[...byCli.values()].filter(x=>x.a||x.b).sort((x,y)=>y.b-x.b);
   const nb=x=>Object.values(x.m).filter(v=>v>0).length;
   const dist=new Map();cl.filter(x=>x.b>0).forEach(x=>{const n=nb(x),d=dist.get(n)||{n:0,v:0};d.n++;d.v+=x.b;dist.set(n,d)});
   const chipsC=[...dist].sort((x,y)=>y[0]-x[0]).map(([n,d])=>`<span class="chip${n===ord.length&&n>1?' up':''}"><b>${d.n}</b> ${d.n>1?'compram':'compra'} ${n===1?'1 marca':(n===ord.length?'as '+n+' marcas':n+' marcas')} · ${fC(d.v)}</span>`).join('');
   const card3=`<div class="card"><h3>Clientes por marca</h3><p class="note" style="margin:2px 0 10px">Receita de ${y1} de cada cliente em cada marca. Clientes agrupados por Matriz Razão.</p><div class="chips">${chipsC}</div>
-    <div class="tw"><table><thead><tr><th>Cliente</th>${ord.map(x=>`<th class="r hm">${esc(x.name)} ${y1}</th>`).join('')}<th class="r hm">Total ${y0}</th><th class="r">Total ${y1}</th><th class="r">Var.</th></tr></thead><tbody>${cl.map(x=>`<tr><td>${esc(x.name)}</td>${ord.map(m=>`<td class="r hm">${x.m[m.name]>0?fR(x.m[m.name]):'—'}</td>`).join('')}<td class="r hm">${fR(x.a)}</td><td class="r"><b>${fR(x.b)}</b></td><td class="r">${vtag(x.a,x.b)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    <div class="tw"><table><thead><tr><th>Cliente</th>${ord.map(x=>`<th class="r hm">${esc(x.name)} ${y1}</th>`).join('')}<th class="r hm">Total ${y0}</th><th class="r">Total ${y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${y1}</th><th class="r hm">Var. L</th>`:''}</tr></thead><tbody>${cl.map(x=>`<tr><td>${esc(x.name)}</td>${ord.map(m=>`<td class="r hm">${x.m[m.name]>0?fR(x.m[m.name]):'—'}</td>`).join('')}<td class="r hm">${fR(x.a)}</td><td class="r"><b>${fR(x.b)}</b></td><td class="r">${vtag(x.a,x.b)}</td>${META.temQtd?`<td class="r hm">${fL(x.qb)}</td><td class="r hm">${vtag(x.qa,x.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
   return card1+card2+card3;
 }
 
@@ -859,7 +868,8 @@ function atalho(k){
   else if(k==='ano'){S.d0=iso(ini);S.d1=iso(ult)}
 }
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio]');if(!t)return;
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm]');if(!t)return;
+  if(t.dataset.tm){S.tm=t.dataset.tm;draw();return}
   if(t.dataset.modo){S.modo=t.dataset.modo;draw()}
   else if(t.dataset.cheio){S.mesCheio=!S.mesCheio;draw()}
   else if(t.dataset.atalho){atalho(t.dataset.atalho);draw()}
