@@ -108,6 +108,7 @@ body.tv .tvhint{display:block}body.tv .tvhint.off{opacity:0;pointer-events:none}
 body.tv{background:var(--bg)}
 body.tv .wrap{max-width:none}
 body.tv{padding-top:12px}
+body.cli .foot{display:none}
 body.tv #sair,body.tv #theme,body.tv .foot{display:none!important}
 body.tv #tv{background:var(--accent);border-color:transparent;color:#fff}
 body.tv header h1{font-size:30px}body.tv header p{font-size:14px}
@@ -128,7 +129,7 @@ body.tv .seg button{height:40px;font-size:14px}
 .btn{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
 .hbtns{display:flex;gap:8px;flex:none;align-items:center}
 #modo{height:40px}#modo button{height:38px}
-@media (max-width:640px){header{flex-wrap:wrap}.hbtns{flex-wrap:wrap;justify-content:flex-end;margin-left:auto}}
+@media (max-width:640px){header{flex-wrap:wrap}.hbtns{flex:1 1 100%;max-width:100%;flex-wrap:wrap;justify-content:flex-start;margin-left:0}.hbtns .seg button{padding:0 10px}}
 :root{--b0:#2a78d6;--b1:#f36f10;--b2:#27a874;--b3:#8e6cc8;--onb:#fff}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--b0:#4b97ee;--b1:#f36f10;--b2:#27a874;--b3:#b79be3;--onb:#0a0a0a}}
 :root[data-theme="dark"]{--b0:#4b97ee;--b1:#f36f10;--b2:#27a874;--b3:#b79be3;--onb:#0a0a0a}
@@ -191,6 +192,7 @@ body.tv .seg button{height:40px;font-size:14px}
       <p id="sub">Carregando dados…</p>
     </div>
     <div class="hbtns">
+      <div class="seg" id="vis" role="group" aria-label="Modo de apresentação" hidden></div>
       <div class="seg" id="modo" role="group" aria-label="Forma de escolher o período" hidden></div>
       <button class="icon-btn" id="tv" hidden title="Tela cheia para apresentação (atalho: T)" style="padding:0 12px;font:600 13px system-ui,sans-serif">Modo TV</button>
       <button class="icon-btn" id="sair" hidden title="Sair e voltar para a tela de login" style="padding:0 12px;font:600 13px system-ui,sans-serif">Sair</button>
@@ -314,8 +316,8 @@ function padronizar(tabela){
   const cItem=find('item'), cItemC=find('itemcodigo');
   const cLinha=find('linhacomercial'), cFam=find('familiacomercial');
   const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa'), cData=find('datafaturamento','datadefaturamento','datafatura',/^data/);
-  const liq=[],qtd=[];
-  head.forEach((h,i)=>{let m=h.match(/^rliquido(\d{4})$/);if(m)liq.push([+m[1],i]);m=h.match(/^qtdlt(\d{4})$/);if(m)qtd.push([+m[1],i])});
+  const liq=[],qtd=[],mer=[];
+  head.forEach((h,i)=>{let m=h.match(/^rliquido(\d{4})$/);if(m)liq.push([+m[1],i]);m=h.match(/^qtdlt(\d{4})$/);if(m)qtd.push([+m[1],i]);m=h.match(/^rmercad(\d{4})$/);if(m)mer.push([+m[1],i])});
   liq.sort((a,b)=>a[0]-b[0]);qtd.sort((a,b)=>a[0]-b[0]);
   const cMc=find('rmc');
   const faltam=[];
@@ -326,6 +328,8 @@ function padronizar(tabela){
   if(faltam.length)throw new Error('Colunas não encontradas na planilha: '+faltam.join('; ')+'.');
   liq.slice(-2).forEach(x=>usadas.add(x[1]));qtd.slice(-2).forEach(x=>usadas.add(x[1]));
   const [y0,i0]=liq[liq.length-2],[y1,i1]=liq[liq.length-1];
+  const m0i=(mer.find(x=>x[0]===y0)||[0,-1])[1], m1i=(mer.find(x=>x[0]===y1)||[0,-1])[1];
+  if(m0i>=0)usadas.add(m0i);if(m1i>=0)usadas.add(m1i);
   const q0=(qtd.find(x=>x[0]===y0)||[0,-1])[1], q1=(qtd.find(x=>x[0]===y1)||[0,-1])[1];
   const txt=(r,i,d)=>i<0||r[i]===undefined||r[i]===''?d:String(r[i]).trim();
   const rows=[];let descartadas=0,semData=0;
@@ -338,7 +342,7 @@ function padronizar(tabela){
     if(m<0||!cli){descartadas++;continue}
     if(cData>=0&&!dt)semData++;
     rows.push({dm:dt?dt.m*100+dt.d:-1,ano:dt?dt.y:0,cli,cod:txt(r,cCod,''),mes:m,item:txt(r,cItem,'—'),itemc:txt(r,cItemC,''),linha:txt(r,cLinha,'—'),fam:txt(r,cFam,txt(r,cItem,'—')),
-      uf:txt(r,cUf,'—'),emp:txt(r,cEmp,'—'),a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc])});
+      uf:txt(r,cUf,'—'),emp:txt(r,cEmp,'—'),a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc]),ma:m0i<0?0:num(r[m0i]),mb:m1i<0?0:num(r[m1i])});
   }
   if(!rows.length)throw new Error('A planilha não tem linhas válidas (confira as colunas Cliente e Mês).');
   const ignoradas=(tabela[0]||[]).filter((_,i)=>!usadas.has(i)&&String(tabela[0][i]).trim()!=='');
@@ -347,7 +351,7 @@ function padronizar(tabela){
   const melhor=new Map();let itensMultiNome=0;
   nomesItem.forEach((m,k)=>{if(m.size>1)itensMultiNome++;melhor.set(k,[...m].sort((a,b)=>b[1]-a[1])[0][0])});
   rows.forEach(r=>{if(r.itemc)r.item=melhor.get(r.itemc)});
-  return {rows,y0,y1,semData,colData:cData>=0,temMc:cMc>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
+  return {rows,y0,y1,semData,colData:cData>=0,temMc:cMc>=0,temMerc:m0i>=0&&m1i>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
 }
 
 /* =====================================================================
@@ -378,7 +382,7 @@ function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let
 const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
 const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-const S={dimP:'cli',dimM:'cli',tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+const S={vis:'gestor',msg:'',dimP:'cli',dimM:'cli',tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
 let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
 /* =====================================================================
@@ -474,7 +478,7 @@ function monthSeries(rows){
 function rankCard(id,title,entries,keyFn,opt={}){
   TABLES[id]={entries,keyFn,opt,total:C.tot};
   S.sort[id]=S.sort[id]||{k:'b',d:-1};
-  return `<div class="card"><div class="ch"><h3>${title}</h3>${META.temQtd?`<div class="seg tms" role="group" aria-label="Mostrar na tabela"><button data-tm="r" aria-pressed="${S.tm==='r'}">Receita</button><button data-tm="l" aria-pressed="${S.tm==='l'}">Litros</button></div>`:''}${opt.search?`<input class="srch" type="search" placeholder="Buscar…" data-q="${id}" value="${esc(S.q[id]||'')}" aria-label="Buscar">`:''}</div><div id="t-${id}"></div></div>`;
+  return `<div class="card"><div class="ch"><h3>${title}</h3>${META.temQtd?`<div class="seg tms" role="group" aria-label="Mostrar na tabela"><button data-tm="r" aria-pressed="${S.tm==='r'}">${RL()}</button><button data-tm="l" aria-pressed="${S.tm==='l'}">Litros</button></div>`:''}${opt.search?`<input class="srch" type="search" placeholder="Buscar…" data-q="${id}" value="${esc(S.q[id]||'')}" aria-label="Buscar">`:''}</div><div id="t-${id}"></div></div>`;
 }
 function sortVal(e,k,T){
   switch(k){case'name':return e.name.toLowerCase();case'a':return e.a;case'b':return e.b;
@@ -488,7 +492,7 @@ function drawTable(id){
   const lim=S.lim[id]||25,shown=list.slice(0,lim),tb=T.total.b;
   const th=(k,l,cl='')=>`<th class="${cl} ${so.k===k?'on':''}" data-sort="${id}|${k}">${l}${so.k===k?(so.d<0?' ↓':' ↑'):''}</th>`;
   const Q=META.temQtd, nc=1+3+(Q?3:0)+1+(META.temMc?1:0)+1;
-  let h=`<div class="tw tm-${S.tm}"><table><thead><tr>${th('name','Nome')}${th('a',Q?'Receita '+META.y0:META.y0,'r hm cr')}${th('b',Q?'Receita '+META.y1:META.y1,'r cr')}${th('var',Q?'Var. receita':'Var.','r cr')}${Q?th('qa','Litros '+META.y0,'r hm cl')+th('qb','Litros '+META.y1,'r cl')+th('qvar','Var. litros','r cl'):''}${th('share','% da receita','r hm')}${META.temMc?th('mcp','MC %','r hm'):''}<th class="hm">Situação</th></tr></thead><tbody>`;
+  let h=`<div class="tw tm-${S.tm}"><table><thead><tr>${th('name','Nome')}${th('a',Q?RL()+' '+META.y0:META.y0,'r hm cr')}${th('b',Q?RL()+' '+META.y1:META.y1,'r cr')}${th('var',Q?'Var. '+RL().toLowerCase():'Var.','r cr')}${Q?th('qa','Litros '+META.y0,'r hm cl')+th('qb','Litros '+META.y1,'r cl')+th('qvar','Var. litros','r cl'):''}${th('share','% do total','r hm')}${META.temMc?th('mcp','MC %','r hm'):''}<th class="hm">Situação</th></tr></thead><tbody>`;
   for(const e of shown){
     const ek=id+'|'+e.key, op=S.exp.has(ek);
     h+=`<tr class="row ${op?'open':''}" data-exp="${esc(ek)}"><td>${esc(e.name)}${e.sub?`<span class="sub">${esc(e.sub)}</span>`:''}</td><td class="r hm cr">${fC(e.a)}</td><td class="r cr">${fC(e.b)}</td><td class="r cr">${vtag(e.a,e.b)}</td>${Q?`<td class="r hm cl">${fL(e.qa)}</td><td class="r cl">${fL(e.qb)}</td><td class="r cl">${vtag(e.qa,e.qb)}</td>`:''}<td class="r hm">${tb>0?fP(e.b/tb):'—'}</td>${META.temMc?`<td class="r hm">${e.b>0?fP(e.mc/e.b):'—'}</td>`:''}<td class="hm">${stag(e.a,e.b)}</td></tr>`;
@@ -500,12 +504,12 @@ function drawTable(id){
   el.innerHTML=h;
 }
 function detalhe(T,e){
-  const rows=C.rows.filter(r=>T.keyFn(r)===e.key), byC=ents(group(rows,r=>r.cli)).sort((x,y)=>y.b-x.b||y.a-x.a);
+  const rows=C.rows.filter(r=>T.keyFn(r)===e.key), byC=(cliMode()?ents(group(rows,r=>r.cod||r.cli),k=>({name:k?filLbl(k):'—'})):ents(group(rows,r=>r.cli))).sort((x,y)=>y.b-x.b||y.a-x.a);
   let h=`<div class="facts"><div class="fact"><span>${META.y0}</span>${fR(e.a)}</div><div class="fact"><span>${META.y1}</span>${fR(e.b)}</div>`;
-  if(META.temQtd)h+=`<div class="fact"><span>Litros ${META.y1}</span>${fL(e.qb)}</div><div class="fact"><span>Preço médio ${META.y1}</span>${e.qb>0?BRL2.format(e.b/e.qb)+'/L':'—'}</div>`;
+  if(META.temQtd)h+=`<div class="fact"><span>Litros ${META.y1}</span>${fL(e.qb)}</div>`+(cliMode()?'':`<div class="fact"><span>Preço médio ${META.y1}</span>${e.qb>0?BRL2.format(e.b/e.qb)+'/L':'—'}</div>`);
   if(META.temMc)h+=`<div class="fact"><span>MC % ${META.y1}</span>${e.b>0?fP(e.mc/e.b):'—'} · ${fR(e.mc)}</div>`;
   h+=`<div class="fact"><span>Situação</span>${stag(e.a,e.b)}</div></div>`;
-  h+=`<div class="tw"><table><thead><tr><th>Cliente</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${META.y0}</th><th class="r">Litros ${META.y1}</th><th class="r">Var. L</th>`:''}</tr></thead><tbody>${byC.map(c=>`<tr><td>${esc(c.name)}</td><td class="r hm">${fC(c.a)}</td><td class="r">${fC(c.b)}</td><td class="r">${vtag(c.a,c.b)}</td>${META.temQtd?`<td class="r hm">${fL(c.qa)}</td><td class="r">${fL(c.qb)}</td><td class="r">${vtag(c.qa,c.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+  if(!(cliMode()&&byC.length<2))h+=`<div class="tw"><table><thead><tr><th>${cliMode()?'Filial':'Cliente'}</th><th class="r hm">${META.y0}</th><th class="r">${META.y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${META.y0}</th><th class="r">Litros ${META.y1}</th><th class="r">Var. L</th>`:''}</tr></thead><tbody>${byC.map(c=>`<tr><td>${esc(c.name)}</td><td class="r hm">${fC(c.a)}</td><td class="r">${fC(c.b)}</td><td class="r">${vtag(c.a,c.b)}</td>${META.temQtd?`<td class="r hm">${fL(c.qa)}</td><td class="r">${fL(c.qb)}</td><td class="r">${vtag(c.qa,c.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
   return h;
 }
 
@@ -934,6 +938,108 @@ function vMc(){
   <div class="card"><h3 style="margin-bottom:8px">Detalhe por ${DIMS.find(d=>d[0]===dim)[1].toLowerCase()} (25 maiores em receita)</h3>${tabela}</div>`;
 }
 
+/* =====================================================================
+   MODO CLIENTE (apresentação: valor de mercadoria, sem preço médio e sem margem)
+   ===================================================================== */
+const cliMode=()=>S.vis==='cliente';
+const RL=()=>cliMode()?'Mercadoria':'Receita';
+const matrizSel=()=>!S.cli?'':(S.cli[0]==='m'?S.cli.slice(2):(META.codMat[S.cli.slice(2)]||''));
+const nFil=()=>(META.cods[matrizSel()]||[]).length;
+const filLbl=cod=>{const u=((META.cods[matrizSel()]||[]).find(x=>x.cod===cod)||{}).uf;return 'Cód. '+cod+(u&&u!=='—'?' · '+u:'')};
+function setVis(v){
+  if(v==='cliente'){
+    if(cliMode())return;
+    if(!META.temMerc){S.msg='Este arquivo de dados ainda não tem as colunas <b>R$ Mercad</b>. Gere um novo <b>dados.enc</b> com a ferramenta atualizada para usar o Modo Cliente.';draw();return}
+    if(!S.cli){S.msg='Escolha um cliente no filtro <b>Cliente</b> antes de entrar no <b>Modo Cliente</b>. Ele mostra apenas os dados desse cliente.';draw();return}
+    S.vis='cliente';S.uf='';S.tab='cres';META.temMc=false;
+  }else{
+    if(!cliMode())return;
+    S.vis='gestor';META.temMc=META.temMcReal;S.tab='res';
+  }
+  draw();scrollTo({top:0});
+}
+const nomesD=(a,n=3)=>a.slice(0,n).map(x=>`${esc(x.name)} (${fD(x.b-x.a)})`).join('; ');
+function vcResumo(){
+  const rows=C.rows,t=C.tot,y0=META.y0,y1=META.y1,mz=matrizSel();
+  const fam=ents(group(rows,r=>r.fam)).filter(x=>x.a||x.b);
+  const lin=ents(group(rows,r=>r.linha)).filter(x=>(x.a||x.b)&&x.name!=='—');
+  const it=ents(group(rows,r=>r.item+'§'+r.itemc),k=>({name:k.split('§')[0]})).filter(x=>x.a||x.b);
+  const {ms,t:ser}=monthSeries(rows);
+  const ativos=a=>a.filter(x=>x.b>0).length, ativos0=a=>a.filter(x=>x.a>0).length;
+  const up=a=>a.filter(x=>x.a>0&&x.b>x.a).sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+  const dn=a=>a.filter(x=>x.a>0&&x.b>0&&x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a));
+  const lost=a=>a.filter(x=>x.a>0&&x.b<=0).sort((x,y)=>y.a-x.a);
+  const nov=a=>a.filter(x=>x.a<=0&&x.b>0).sort((x,y)=>y.b-x.b);
+  const p=pct(t.a,t.b);
+  let h='<div class="kpis">';
+  h+=kpi(`Mercadoria ${y1}`,fC(t.b),`${y0}: ${fC(t.a)}`,vtag(t.a,t.b));
+  if(META.temQtd)h+=kpi(`Volume ${y1}`,fL(t.qb),`${y0}: ${fL(t.qa)}`,vtag(t.qa,t.qb));
+  h+=kpi('Linhas ativas',String(ativos(lin)),`${y0}: ${ativos0(lin)}`);
+  h+=kpi('Famílias ativas',String(ativos(fam)),`${y0}: ${ativos0(fam)}`);
+  h+=kpi('Itens ativos',String(ativos(it)),`${y0}: ${ativos0(it)}`);
+  h+='</div>';
+  const cfg={ms,a:ser.map(o=>o.a),b:ser.map(o=>o.b),fmt:(v,ax)=>ax?fC(v).replace('R$ ',''):fC(v),label:'Mercadoria por mês',hl:true};
+  h+=`<div class="card"><h3>Mercadoria por mês</h3>${chartBox('main',cfg,true)}</div>`;
+  h+=cardDia();
+  /* ---- destaques e oportunidades ---- */
+  const D=[],O=[],plano=[];
+  const lead=t.a>0?`Compras de mercadoria <b>${fV(p)}</b> sobre ${y0} (${fD(t.b-t.a)}): de ${fC(t.a)} para ${fC(t.b)}.`:`Compras de ${fC(t.b)} em ${y1}.`;
+  (p==null||p>=0?D:O).push(li(p==null||p>=0?'g':'r',lead));
+  if(ms.length>1){const ac=ser.filter(o=>o.b>o.a).length;(ac>=ms.length/2?D:O).push(li(ac>=ms.length/2?'g':'y',`Acima de ${y0} em <b>${ac} de ${ms.length}</b> meses do período.`))}
+  const lu=up(lin),ld=dn(lin);
+  if(lu.length)D.push(li('g',`Linhas em crescimento: <b>${nomesD(lu,3)}</b>.`));
+  if(ld.length)O.push(li('y',`Linhas abaixo de ${y0}: <b>${nomesD(ld,3)}</b>.`));
+  const fu=up(fam),fd=dn(fam),fl=lost(fam),fn=nov(fam);
+  if(fu.length)D.push(li('g',`Famílias que mais cresceram: <b>${nomesD(fu,3)}</b>.`));
+  if(fn.length)D.push(li('g',`<b>${fn.length}</b> ${fn.length>1?'famílias novas':'família nova'} em ${y1} (${fC(fn.reduce((s,x)=>s+x.b,0))}): ${nomes(fn,3)}.`));
+  if(fd.length)O.push(li('y',`Famílias abaixo de ${y0}: <b>${nomesD(fd,3)}</b>.`));
+  if(fl.length)O.push(li('r',`<b>${fl.length}</b> ${fl.length>1?'famílias sem compra':'família sem compra'} em ${y1} (${fC(fl.reduce((s,x)=>s+x.a,0))} em ${y0}): ${nomes(fl,4)}.`));
+  const iu=up(it),id=dn(it),il=lost(it),inw=nov(it);
+  if(iu.length)D.push(li('g',`Itens que mais cresceram: <b>${nomesD(iu,3)}</b>.`));
+  if(inw.length)D.push(li('g',`<b>${inw.length}</b> ${inw.length>1?'itens novos':'item novo'} em ${y1}, somando ${fC(inw.reduce((s,x)=>s+x.b,0))}.`));
+  if(id.length)O.push(li('y',`Itens com maior queda: <b>${nomesD(id,3)}</b>.`));
+  if(il.length)O.push(li('r',`<b>${il.length}</b> ${il.length>1?'itens deixaram':'item deixou'} de ser comprados (${fC(il.reduce((s,x)=>s+x.a,0))} em ${y0}).`));
+  const topF=[...fam].sort((x,y)=>y.b-x.b).filter(x=>x.b>0);
+  if(topF.length>2&&t.b>0){const s3=topF.slice(0,3).reduce((s,x)=>s+x.b,0)/t.b;if(s3>0.7)O.push(li('y',`As 3 maiores famílias concentram <b>${fP(s3)}</b> das compras: há espaço para ampliar o mix.`))}
+  /* filiais */
+  const matRows=C.rowsAll.filter(r=>r.cli===mz),fil=ents(group(matRows,r=>r.cod||r.cli)).filter(x=>x.a||x.b);
+  if(fil.length>1){
+    const fu2=up(fil),fd2=dn(fil),fz=lost(fil);
+    if(fu2.length)D.push(li('g',`Filiais em crescimento: <b>${fu2.slice(0,3).map(x=>`${esc(filLbl(x.key))} (${fD(x.b-x.a)})`).join('; ')}</b>.`));
+    if(fd2.length)O.push(li('y',`Filiais abaixo de ${y0}: <b>${fd2.slice(0,3).map(x=>`${esc(filLbl(x.key))} (${fD(x.b-x.a)})`).join('; ')}</b>.`));
+    if(fz.length)O.push(li('r',`Filiais sem compra em ${y1}: <b>${fz.slice(0,4).map(x=>esc(filLbl(x.key))).join('; ')}</b>.`));
+  }
+  /* mix: famílias do portfólio que o cliente ainda não compra (só nomes, sem dados de outros clientes) */
+  const compra=new Set(fam.filter(x=>x.b>0).map(x=>x.name)),nb=new Map();
+  C.rowsAll.forEach(r=>{if(r.cli!==mz&&r.b>0){(nb.get(r.fam)||nb.set(r.fam,new Set()).get(r.fam)).add(r.cli)}});
+  const mix=[...nb].filter(([f,c])=>!compra.has(f)&&c.size>=2).sort((x,y)=>y[1].size-x[1].size).map(x=>x[0]);
+  if(mix.length)O.push(li('y',`Famílias do portfólio que ainda não fazem parte das compras: <b>${mix.slice(0,5).map(esc).join(', ')}</b>.`));
+  /* próximos passos */
+  if(fl.length)plano.push({p:'alta',a:`Retomar famílias sem compra: ${nomes(fl,3)}`,e:`${fl.length} sem compra em ${y1}`,i:`${fC(fl.reduce((s,x)=>s+x.a,0))} de ${y0}`});
+  if(fd.length)plano.push({p:'alta',a:`Plano de recuperação das famílias em queda: ${nomes(fd,3)}`,e:`Queda somada de ${fC(Math.abs(fd.slice(0,5).reduce((s,x)=>s+x.b-x.a,0)))} nas 5 maiores`,i:`Voltar ao patamar de ${y0}`});
+  if(ld.length)plano.push({p:'media',a:`Reforçar a linha ${esc(ld[0].name)}`,e:`${fD(ld[0].b-ld[0].a)} vs ${y0}`,i:`${fC(Math.abs(ld[0].b-ld[0].a))} recuperáveis`});
+  if(fil.length>1){const fd2=dn(fil);if(fd2.length)plano.push({p:'media',a:`Atuar na filial ${esc(filLbl(fd2[0].key))}`,e:`${fD(fd2[0].b-fd2[0].a)} vs ${y0}`,i:`${fC(Math.abs(fd2[0].b-fd2[0].a))} recuperáveis`})}
+  if(mix.length)plano.push({p:'media',a:`Apresentar ${esc(mix[0])} ao cliente`,e:'Família do portfólio ainda não comprada',i:'Ampliação de mix'});
+  h+=`<div class="cols2" style="margin-bottom:14px"><div class="card"><h3 style="margin-bottom:10px">Destaques</h3><ul class="ins">${D.join('')||'<li class="note">—</li>'}</ul></div><div class="card"><h3 style="margin-bottom:10px">Oportunidades de melhoria</h3><ul class="ins">${O.join('')||'<li class="note">Nenhum ponto de atenção no período.</li>'}</ul></div></div>`;
+  if(plano.length)h+=`<div class="card"><h3 style="margin-bottom:10px">Próximos passos sugeridos</h3><div class="plan"><div class="pr ph"><span>Prioridade</span><span>Ação</span><span>Evidência</span><span>Potencial</span></div>${plano.slice(0,5).map(x=>`<div class="pr"><span><span class="pri ${x.p}">${x.p==='alta'?'Alta':'Média'}</span></span><span>${x.a}</span><span><small>Evidência:</small>${x.e}</span><span><small>Potencial:</small>${x.i}</span></div>`).join('')}</div></div>`;
+  return h;
+}
+function vcFil(){
+  const mz=matrizSel(),y0=META.y0,y1=META.y1,rows=C.rowsAll.filter(r=>r.cli===mz),T=sum(rows);
+  const fl=ents(group(rows,r=>r.cod||r.cli)).filter(x=>x.a||x.b).sort((x,y)=>y.b-x.b);
+  if(!fl.length)return '<div class="card">Sem dados para o período.</div>';
+  const Q=META.temQtd;
+  const tb=`<div class="tw"><table><thead><tr><th>Filial</th><th class="r hm">Mercadoria ${y0}</th><th class="r">Mercadoria ${y1}</th><th class="r">Var.</th>${Q?`<th class="r hm">Litros ${y1}</th><th class="r hm">Var. litros</th>`:''}<th class="r hm">% do total</th><th class="hm">Situação</th><th></th></tr></thead><tbody>${fl.map(x=>`<tr><td>${esc(filLbl(x.key))}</td><td class="r hm">${fC(x.a)}</td><td class="r">${fC(x.b)}</td><td class="r">${vtag(x.a,x.b)}</td>${Q?`<td class="r hm">${fL(x.qb)}</td><td class="r hm">${vtag(x.qa,x.qb)}</td>`:''}<td class="r hm">${T.b>0?fP(x.b/T.b):'—'}</td><td class="hm">${stag(x.a,x.b)}</td><td class="r"><button class="more" style="margin:0;padding:4px 10px" data-setcli="c:${esc(x.key)}">Ver filial</button></td></tr>`).join('')}</tbody></table></div>`;
+  const I=[],u=fl.filter(x=>x.a>0&&x.b>x.a).sort((x,y)=>(y.b-y.a)-(x.b-x.a)),d=fl.filter(x=>x.a>0&&x.b>0&&x.b<x.a).sort((x,y)=>(x.b-x.a)-(y.b-y.a)),z=fl.filter(x=>x.a>0&&x.b<=0);
+  if(u.length)I.push(li('g',`Maior crescimento: <b>${esc(filLbl(u[0].key))}</b> (${fD(u[0].b-u[0].a)}).`));
+  if(d.length)I.push(li('y',`Maior queda: <b>${esc(filLbl(d[0].key))}</b> (${fD(d[0].b-d[0].a)}).`));
+  if(z.length)I.push(li('r',`Sem compra em ${y1}: <b>${z.map(x=>esc(filLbl(x.key))).join('; ')}</b>.`));
+  if(fl.length>1&&T.b>0)I.push(li('',`<b>${esc(filLbl(fl[0].key))}</b> responde por ${fP(fl[0].b/T.b)} do total.`));
+  const ser=fl.filter(x=>x.b>0).slice(0,6);
+  return `<div class="card"><h3 style="margin-bottom:8px">Desempenho por filial</h3>${tb}</div>${I.length?`<div class="card"><h3 style="margin-bottom:10px">Leitura rápida</h3><ul class="ins">${I.join('')}</ul></div>`:''}`;
+}
+const TABSC=[['cres','Resumo',vcResumo],['cfil','Filiais',vcFil],['clinha','Linhas',vLinha],['cfam','Famílias',vFam],['citem','Itens',vItem]];
+
 const TABS=[['res','Resumo',vResumo],['cli','Clientes',vClientes],['fam','Famílias',vFam],['item','Itens',vItem],['marca','Marca',vMarca],['linha','Linhas',vLinha],['uf','Estados',vUf],['preco','Preço médio',vPreco],['mc','MC %',vMc],['base','Diagnóstico da base',vBase]];
 
 /* =====================================================================
@@ -942,6 +1048,8 @@ const TABS=[['res','Resumo',vResumo],['cli','Clientes',vClientes],['fam','Famíl
 function drawFilters(){
   const sel=(id,l,opts,val)=>`<label>${l}<select id="${id}">${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(val)?'selected':''}>${esc(o[1])}</option>`).join('')}</select></label>`;
   let h='';
+  if(cliMode()){const mz=matrizSel(),cs=META.cods[mz]||[];if(cs.length>1)h+=`<label class="full">Filial<select id="f-fil"><option value="m:${esc(mz)}" ${S.cli==='m:'+mz?'selected':''}>Todas as filiais</option>${cs.map(x=>`<option value="c:${esc(x.cod)}" ${S.cli==='c:'+x.cod?'selected':''}>${esc(filLbl(x.cod))}</option>`).join('')}</select></label>`}
+  else{
   if(META.emps.length>1)h+=sel('f-emp','Empresa',[['','Todas']].concat(META.emps.map(x=>[x,x])),S.emp);
   if(META.ufs.length>1)h+=sel('f-uf','Estado',[['','Todos']].concat(META.ufs.map(x=>[x,x])),S.uf);
   if(META.clientes.length>1||META.codsTotal>META.clientes.length){
@@ -953,6 +1061,8 @@ function drawFilters(){
     }
     h+=`<label class="full">Cliente<select id="f-cli">${o}</select></label>`;
   }
+  }
+  {const v=$('#vis');v.hidden=false;v.innerHTML=`<button data-vis="gestor" aria-pressed="${!cliMode()}">Modo Gestor</button><button data-vis="cliente" aria-pressed="${cliMode()}">Modo Cliente</button>`}
   {const m=$('#modo');m.hidden=!META.temData;m.innerHTML=META.temData?`<button data-modo="mes" aria-pressed="${S.modo==='mes'}">Por mês</button><button data-modo="dia" aria-pressed="${S.modo==='dia'}">Por dia</button>`:''}
   if(emDia()){
     const mi=`${META.y1}-01-01`,ma=`${META.y1}-12-31`;
@@ -961,17 +1071,19 @@ function drawFilters(){
   }else if(META.months.length>1){const mo=META.months.map(m=>[m,MESC[m]]);h+=sel('f-m0','De',mo,S.m0)+sel('f-m1','Até',mo,S.m1)}
   $('#filters').innerHTML=h;
 }
-function drawTabs(){$('#tabs').innerHTML=TABS.map(t=>`<button class="tab" role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join('')}
+const tabsAt=()=>cliMode()?TABSC.filter(t=>t[0]!=='cfil'||nFil()>1):TABS;
+function drawTabs(){$('#tabs').innerHTML=tabsAt().map(t=>`<button class="tab" role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join('')}
 const k0=()=>S.cli.slice(2);
 function draw(){
-  const rowsAll=DATA.rows.filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
+  const rowsAll=(cliMode()?DATA.rowsM:DATA.rows).filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
   const k=S.cli.slice(2), rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:r.cod===k);
   C={rows,rowsAll,tot:sum(rows),totAll:sum(rowsAll),codSel:S.cli[0]==='c'?k:''};
   drawFilters();drawTabs();TABLES={};CHARTS={};
   const lbl=S.m0===S.m1?MESC[S.m0]:`${MESC[S.m0]}–${MESC[S.m1]}`.toLowerCase();
-  $('#sub').textContent=`Receita líquida · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
-  {const av=avisoPeriodo();$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
-  const tab=TABS.find(t=>t[0]===S.tab)||TABS[0];
+  $('#ttl').textContent=cliMode()?'Desempenho de '+matrizSel():'Dashboard de Vendas';document.body.classList.toggle('cli',cliMode());
+  $('#sub').textContent=`${cliMode()?'Valor de mercadoria':'Receita líquida'} · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
+  {const av=(S.msg?`<span>${S.msg}</span>`:'')||avisoPeriodo();S.msg='';$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
+  const TT=tabsAt(),tab=TT.find(t=>t[0]===S.tab)||TT[0];
   $('#view').innerHTML=rows.length?tab[2]():'<div class="card">Sem dados para os filtros escolhidos.</div>';
   Object.keys(TABLES).forEach(drawTable);
   drawCharts();
@@ -1022,7 +1134,8 @@ function atalho(k){
   else if(k==='ano'){S.d0=iso(ini);S.d1=iso(ult)}
 }
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm],[data-emp],[data-dimp],[data-dimm]');if(!t)return;
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm],[data-emp],[data-dimp],[data-dimm],[data-vis]');if(!t)return;
+  if(t.dataset.vis){setVis(t.dataset.vis);return}
   if(t.dataset.dimp){S.dimP=t.dataset.dimp;draw();return}
   if(t.dataset.dimm){S.dimM=t.dataset.dimm;draw();return}
   if(t.dataset.emp!==undefined){S.emp=t.dataset.emp;draw();return}
@@ -1042,7 +1155,7 @@ document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches(
 document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.q){S.q[e.target.dataset.q]=e.target.value;S.lim[e.target.dataset.q]=25;drawTable(e.target.dataset.q)}});
 document.addEventListener('change',e=>{
   const id=e.target.id;
-  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
+  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'||id==='f-fil'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
   else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
   else if(id==='f-atalho'){if(!e.target.value)return;atalho(e.target.value)}
   else if(id==='f-d0'){if(!e.target.value)return;S.d0=e.target.value;if(S.d1<S.d0)S.d1=S.d0}
@@ -1069,7 +1182,7 @@ document.addEventListener('keydown',e=>{
   if(tag==='input'||tag==='select'||tag==='textarea'||e.ctrlKey||e.metaKey||e.altKey||!DATA)return;
   if(e.key==='t'||e.key==='T'){e.preventDefault();modoTv()}
   else if(document.body.classList.contains('tv')&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
-    e.preventDefault();const i=TABS.findIndex(t=>t[0]===S.tab),n=(i+(e.key==='ArrowRight'?1:-1)+TABS.length)%TABS.length;S.tab=TABS[n][0];draw();scrollTo({top:0})}
+    e.preventDefault();const TT=tabsAt(),i=TT.findIndex(t=>t[0]===S.tab),n=(i+(e.key==='ArrowRight'?1:-1)+TT.length)%TT.length;S.tab=TT[n][0];draw();scrollTo({top:0})}
 });
 $('#tv').addEventListener('click',modoTv);
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>DATA&&drawCharts(),150)});
@@ -1089,7 +1202,8 @@ function iniciar(tabela,nome,modificado){
   const d=padronizar(tabela);
   DATA=d;
   const u=(f)=>[...new Set(d.rows.map(f))].sort();
-  META={y0:d.y0,y1:d.y1,temMc:d.temMc,temQtd:d.temQtd,ignoradas:d.ignoradas,arquivo:nome,modificado,
+  DATA.rowsM=d.temMerc?d.rows.map(r=>Object.assign({},r,{a:r.ma,b:r.mb,mc:0})):[];
+  META={y0:d.y0,y1:d.y1,temMc:d.temMc,temMcReal:d.temMc,temMerc:d.temMerc,temQtd:d.temQtd,ignoradas:d.ignoradas,arquivo:nome,modificado,
     months:[...new Set(d.rows.map(r=>r.mes))].sort((a,b)=>a-b),emps:u(r=>r.emp).filter(x=>x!=='—'),ufs:u(r=>r.uf).filter(x=>x!=='—'),clientes:u(r=>r.cli)};
   META.descartadas=d.descartadas;META.itensMultiNome=d.itensMultiNome;META.totalLinhas=d.totalLinhas;
   META.cods={};META.codMat={};
@@ -1107,6 +1221,7 @@ function iniciar(tabela,nome,modificado){
   }
   S.modo='mes';S.mesCheio=false;
   $('#loader').innerHTML='';$('#main').hidden=false;$('#tv').hidden=false;
+  S.vis='gestor';
   $('#foot').textContent=`Base: ${nome}${modificado?' · atualizada em '+modificado:''} · ${NUM.format(d.rows.length)} linhas`;
   draw();
 }
