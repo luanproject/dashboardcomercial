@@ -6,19 +6,19 @@
 <title>Dashboard de Vendas</title>
 <style>
 :root{
-  --bg:#f5f5f4; --surface:#ffffff; --ink:#171717; --ink2:#4a4a4a; --muted:#6e6e6e; --line:#e1dfdc; --line2:#f0eeeb;
-  --y0:#a3a3a3; --y1:#f36f10; --accent:#d9620b; --accent-soft:#fdeee0;
-  --good:#17785a; --good-soft:#dff1ea; --bad:#b83a2c; --bad-soft:#f9e4e0; --warn:#9a5a00; --warn-soft:#fbefd0;
+  --bg:#f7f8f9; --surface:#ffffff; --ink:#101214; --ink2:#44474f; --muted:#6b6e76; --line:#dcdfe4; --line2:#eef0f3;
+  --y0:#9aa0aa; --y1:#1868db; --accent:#1868db; --accent-soft:#e9f2fe;
+  --good:#1f845a; --good-soft:#dcfff1; --bad:#c9372c; --bad-soft:#ffeceb; --warn:#a54800; --warn-soft:#fff7d6;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#050505; --surface:#141414; --ink:#f5f5f5; --ink2:#c9c9c9; --muted:#a3a3a3; --line:#2f2f2f; --line2:#1f1f1f;
-  --y0:#6b6b6b; --y1:#f36f10; --accent:#f36f10; --accent-soft:#2a1a0d;
-  --good:#27a874; --good-soft:#0f241c; --bad:#f0626d; --bad-soft:#2d1316; --warn:#ff9a43; --warn-soft:#2d1d0d; color-scheme:dark}}
+  --bg:#101214; --surface:#1d2125; --ink:#dcdfe4; --ink2:#b6c2cf; --muted:#8c9bab; --line:#38414a; --line2:#2b3238;
+  --y0:#626f86; --y1:#579dff; --accent:#1d7afc; --accent-soft:#1c2b41;
+  --good:#4bce97; --good-soft:#1c3329; --bad:#f87168; --bad-soft:#42221f; --warn:#f5cd47; --warn-soft:#3d3000; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#050505; --surface:#141414; --ink:#f5f5f5; --ink2:#c9c9c9; --muted:#a3a3a3; --line:#2f2f2f; --line2:#1f1f1f;
-  --y0:#6b6b6b; --y1:#f36f10; --accent:#f36f10; --accent-soft:#2a1a0d;
-  --good:#27a874; --good-soft:#0f241c; --bad:#f0626d; --bad-soft:#2d1316; --warn:#ff9a43; --warn-soft:#2d1d0d; color-scheme:dark}
+  --bg:#101214; --surface:#1d2125; --ink:#dcdfe4; --ink2:#b6c2cf; --muted:#8c9bab; --line:#38414a; --line2:#2b3238;
+  --y0:#626f86; --y1:#579dff; --accent:#1d7afc; --accent-soft:#1c2b41;
+  --good:#4bce97; --good-soft:#1c3329; --bad:#f87168; --bad-soft:#42221f; --warn:#f5cd47; --warn-soft:#3d3000; color-scheme:dark}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
@@ -943,7 +943,7 @@ function vMc(){
    ===================================================================== */
 const cliMode=()=>S.vis==='cliente';
 const RL=()=>cliMode()?'Mercadoria':'Receita';
-const matrizSel=()=>!S.cli?'':(S.cli[0]==='m'?S.cli.slice(2):(META.codMat[S.cli.slice(2)]||''));
+const matrizSel=()=>cliMode()&&S.mz?S.mz:!S.cli?'':(S.cli[0]==='m'?S.cli.slice(2):(META.codMat[S.cli.slice(2)]||''));
 const nFil=()=>(META.cods[matrizSel()]||[]).length;
 const filLbl=cod=>{const u=((META.cods[matrizSel()]||[]).find(x=>x.cod===cod)||{}).uf;return 'Cód. '+cod+(u&&u!=='—'?' · '+u:'')};
 function setVis(v){
@@ -951,7 +951,7 @@ function setVis(v){
     if(cliMode())return;
     if(!META.temMerc){S.msg='Este arquivo de dados ainda não tem as colunas <b>R$ Mercad</b>. Gere um novo <b>dados.enc</b> com a ferramenta atualizada para usar o Modo Cliente.';draw();return}
     if(!S.cli){S.msg='Escolha um cliente no filtro <b>Cliente</b> antes de entrar no <b>Modo Cliente</b>. Ele mostra apenas os dados desse cliente.';draw();return}
-    S.vis='cliente';S.uf='';S.tab='cres';META.temMc=false;
+    S.mz=S.cli[0]==='m'?S.cli.slice(2):(S.mzSel||META.codMat[S.cli.slice(2)]||'');S.vis='cliente';S.uf='';S.tab='cres';META.temMc=false;
   }else{
     if(!cliMode())return;
     S.vis='gestor';META.temMc=META.temMcReal;S.tab='res';
@@ -1076,7 +1076,7 @@ function drawTabs(){$('#tabs').innerHTML=tabsAt().map(t=>`<button class="tab" ro
 const k0=()=>S.cli.slice(2);
 function draw(){
   const rowsAll=(cliMode()?DATA.rowsM:DATA.rows).filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
-  const k=S.cli.slice(2), rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:r.cod===k);
+  const k=S.cli.slice(2), mzc=cliMode()?matrizSel():'', rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:(r.cod===k&&(!mzc||r.cli===mzc)));
   C={rows,rowsAll,tot:sum(rows),totAll:sum(rowsAll),codSel:S.cli[0]==='c'?k:''};
   drawFilters();drawTabs();TABLES={};CHARTS={};
   const lbl=S.m0===S.m1?MESC[S.m0]:`${MESC[S.m0]}–${MESC[S.m1]}`.toLowerCase();
@@ -1084,7 +1084,8 @@ function draw(){
   $('#sub').textContent=`${cliMode()?'Valor de mercadoria':'Receita líquida'} · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
   {const av=(S.msg?`<span>${S.msg}</span>`:'')||avisoPeriodo();S.msg='';$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
   const TT=tabsAt(),tab=TT.find(t=>t[0]===S.tab)||TT[0];
-  $('#view').innerHTML=rows.length?tab[2]():'<div class="card">Sem dados para os filtros escolhidos.</div>';
+  const filB=cliMode()&&S.cli[0]==='c'&&nFil()>1?`<div class="notice" style="margin-bottom:14px"><span>Mostrando apenas a filial <b>${esc(filLbl(S.cli.slice(2)))}</b>.</span><button data-setcli="m:${esc(matrizSel())}">Ver todas as filiais</button></div>`:'';
+  $('#view').innerHTML=rows.length?filB+tab[2]():filB+'<div class="card">Sem dados para os filtros escolhidos.</div>';
   Object.keys(TABLES).forEach(drawTable);
   drawCharts();
 }
@@ -1155,7 +1156,7 @@ document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches(
 document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.q){S.q[e.target.dataset.q]=e.target.value;S.lim[e.target.dataset.q]=25;drawTable(e.target.dataset.q)}});
 document.addEventListener('change',e=>{
   const id=e.target.id;
-  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'||id==='f-fil'){S.cli=e.target.value;if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
+  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'||id==='f-fil'){S.cli=e.target.value;if(id==='f-cli'){const o=e.target.selectedOptions[0];S.mzSel=S.cli[0]==='c'&&o&&o.parentElement.label?o.parentElement.label:''}if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
   else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
   else if(id==='f-atalho'){if(!e.target.value)return;atalho(e.target.value)}
   else if(id==='f-d0'){if(!e.target.value)return;S.d0=e.target.value;if(S.d1<S.d0)S.d1=S.d0}
