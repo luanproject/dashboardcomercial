@@ -378,7 +378,7 @@ function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let
 const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
 const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-const S={tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+const S={dimP:'cli',dimM:'cli',tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
 let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
 /* =====================================================================
@@ -786,7 +786,155 @@ function vBase(){
   <div class="cols2"><div class="card"><h3 style="margin-bottom:10px">Qualidade dos dados</h3><ul class="ins">${diagnostico()}</ul></div>
   <div class="card"><h3 style="margin-bottom:10px">Regras dos indicadores</h3><ul class="ins">${regras}</ul></div></div>`;
 }
-const TABS=[['res','Resumo',vResumo],['cli','Clientes',vClientes],['fam','Famílias',vFam],['item','Itens',vItem],['marca','Marca',vMarca],['linha','Linhas',vLinha],['uf','Estados',vUf],['base','Diagnóstico da base',vBase]];
+/* =====================================================================
+   PREÇO MÉDIO e MC % (análise por cliente, linha, família e item)
+   ===================================================================== */
+const DIMS=[['cli','Clientes'],['linha','Linhas'],['fam','Famílias'],['item','Itens']],SING={cli:'Cliente',linha:'Linha',fam:'Família',item:'Item'};
+let _inm=null,_inmD=null;
+function itemNomes(){if(_inmD!==DATA){_inm={};DATA.rows.forEach(r=>{_inm[r.itemc||r.item]=r.item});_inmD=DATA}return _inm}
+function dimDef(d){
+  if(d==='cli')return {rows:()=>C.rowsAll,key:r=>r.cli,name:k=>k};
+  if(d==='linha')return {rows:()=>C.rows,key:r=>r.linha||'—',name:k=>k==='—'?'(sem linha)':k};
+  if(d==='fam')return {rows:()=>C.rows,key:r=>r.fam||'—',name:k=>k};
+  return {rows:()=>C.rows,key:r=>r.itemc||r.item,name:k=>itemNomes()[k]||k};
+}
+const fPm=x=>fP(x).replace('-','−');
+const SEP2='\u0001';
+const dimSeg=(attr,cur)=>`<div class="seg" role="group" aria-label="Analisar por">${DIMS.map(d=>`<button ${attr}="${d[0]}" aria-pressed="${cur===d[0]}">${d[1]}</button>`).join('')}</div>`;
+const kp=(l,v,s)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s||''}</div></div>`;
+const fPL=v=>BRL2.format(v)+'/L';
+const pp=d=>(d>=0?'+':'−')+Math.abs(d*100).toFixed(1).replace('.',',')+' p.p.';
+const vazio2='<p class="note">Nenhum caso no período.</p>';
+function precoEnts(dim){
+  const D=dimDef(dim),rows=D.rows(),g=group(rows,D.key),pe=new Map();
+  group(rows,r=>D.key(r)+SEP2+(r.itemc||r.item)).forEach((o,k)=>{
+    if(o.qa>0&&o.qb>0){const e=k.split(SEP2)[0];pe.set(e,(pe.get(e)||0)+(o.b/o.qb-o.a/o.qa)*o.qb)}});
+  return ents(g,k=>({name:D.name(k)})).map(x=>{
+    const ok=x.qa>0&&x.qb>0&&x.a>0&&x.b>0;
+    const p0=x.qa>0?x.a/x.qa:null,p1=x.qb>0?x.b/x.qb:null;
+    const imp=ok?(p1-p0)*x.qb:0,ps=ok?(pe.get(x.key)||0):0;
+    return Object.assign(x,{ok,p0,p1,var:ok?p1/p0-1:null,imp,ps,mix:imp-ps});
+  });
+}
+function mixSeries(rows){
+  const {ms,t}=monthSeries(rows),out=[];
+  ms.forEach((m,i)=>{const o=t[i];if(o.qa>0&&o.qb>0&&o.a>0&&o.b>0)out.push({m,p0:o.a/o.qa,p1:o.b/o.qb,v:(o.b/o.qb)/(o.a/o.qa)-1})});
+  return out;
+}
+function dispersao(){
+  const g=group(C.rowsAll,r=>(r.itemc||r.item)+SEP2+r.cli),by=new Map();
+  g.forEach((o,k)=>{if(o.qb<=0||o.b<=0)return;const [it,cl]=k.split(SEP2);let e=by.get(it);if(!e){e={it,list:[],q:0,b:0};by.set(it,e)}e.list.push({cl,p:o.b/o.qb,q:o.qb});e.q+=o.qb;e.b+=o.b});
+  return [...by.values()].filter(e=>e.list.length>=2).map(e=>{
+    const pm=e.b/e.q,lo=e.list.reduce((m,x)=>x.p<m.p?x:m),hi=e.list.reduce((m,x)=>x.p>m.p?x:m);
+    const opp=e.list.reduce((s,x)=>s+(x.p<pm?(pm-x.p)*x.q:0),0);
+    return {name:itemNomes()[e.it]||e.it,pm,lo,hi,spread:hi.p/lo.p-1,opp,q:e.q};
+  }).filter(e=>e.spread>=0.05&&e.opp>0).sort((x,y)=>y.opp-x.opp);
+}
+function chartTab(id,titulo,cfg,leg,nota){
+  return `<div class="card"><h3>${titulo}</h3>${chartBox(id,cfg,leg)}${nota?`<p class="note">${nota}</p>`:''}</div>`;
+}
+function vPreco(){
+  if(!META.temQtd)return `<div class="card"><p class="note">Esta análise precisa das colunas de litros (Qtd (LT)) na planilha.</p></div>`;
+  const y0=META.y0,y1=META.y1,rows=C.rows,tot=sum(rows),dim=S.dimP;
+  const P0=tot.qa>0?tot.a/tot.qa:null,P1=tot.qb>0?tot.b/tot.qb:null,vP=P0&&P1?P1/P0-1:null;
+  const items=precoEnts('item'),okI=items.filter(x=>x.ok);
+  const efP=tot.qb>0?okI.reduce((s,x)=>s+x.imp,0)/tot.qb:0,dP=P0&&P1?P1-P0:0,efM=dP-efP;
+  const E=precoEnts(dim),lst=E.filter(x=>x.ok);
+  const quedas=lst.filter(x=>x.imp<0).sort((a,b)=>a.imp-b.imp).slice(0,8);
+  const altas=lst.filter(x=>x.imp>0).sort((a,b)=>b.imp-a.imp).slice(0,8);
+  const rowL=x=>`<div class="lrow"><span class="t">${esc(x.name)}<span class="sub">${fL(x.qb)} em ${y1} · só preço ${fD(x.ps)}${dim!=='item'?' · mix '+fD(x.mix):''}</span></span><span class="v">${fPL(x.p0)} → ${fPL(x.p1)}<span class="sub"><span class="tag ${cls(x.var)}">${arrow(x.var)}${fV(x.var)}</span> ${fD(x.imp)}</span></span></div>`;
+  /* quadrantes por item */
+  const Q={pu_vu:{n:0,q:0,i:0},pu_vd:{n:0,q:0,i:0},pd_vu:{n:0,q:0,i:0},pd_vd:{n:0,q:0,i:0}};
+  okI.forEach(x=>{if(Math.abs(x.var)<0.01)return;const k=(x.var>0?'pu':'pd')+'_'+(x.qb>=x.qa?'vu':'vd');Q[k].n++;Q[k].q+=x.qb;Q[k].i+=x.imp});
+  const qt=(k,t,s,c)=>`<div class="kpi" style="border-top-color:var(--${c})"><div class="l">${t}</div><div class="v">${Q[k].n} ${Q[k].n===1?'item':'itens'}</div><div class="s">${s}<br>${fL(Q[k].q)} · impacto de preço ${fD(Q[k].i)}</div></div>`;
+  /* insights */
+  const ins=[];
+  if(P0&&P1){
+    ins.push(li(vP>=0.0005?'g':vP<=-0.0005?'r':'',`Preço médio <b>${fV(vP)}</b>: ${fPL(P0)} em ${y0} → <b>${fPL(P1)}</b> em ${y1}.`));
+    ins.push(li('',`Desse movimento, <b>${fV(efP/P0)}</b> vem de reajuste ou desconto nos <b>mesmos itens</b> (efeito preço) e <b>${fV(efM/P0)}</b> da mudança de mix, isto é, do que está sendo vendido (litros mais baratos ou mais caros).`));
+  }
+  const pi=[...okI].sort((a,b)=>a.imp-b.imp);
+  if(pi.length&&pi[0].imp<0)ins.push(li('r',`Maior perda de preço em item: <b>${esc(pi[0].name)}</b>, de ${fPL(pi[0].p0)} para ${fPL(pi[0].p1)} (${fV(pi[0].var)}). Efeito de <b>${fD(pi[0].imp)}</b> na receita de ${y1}.`));
+  const pj=pi[pi.length-1];
+  if(pj&&pj.imp>0)ins.push(li('g',`Maior ganho de preço em item: <b>${esc(pj.name)}</b>, de ${fPL(pj.p0)} para ${fPL(pj.p1)} (${fV(pj.var)}), <b>${fD(pj.imp)}</b> na receita.`));
+  const cs=precoEnts('cli').filter(x=>x.ok).sort((a,b)=>a.imp-b.imp);
+  if(cs.length&&cs[0].imp<0)ins.push(li('r',`Cliente com maior queda de preço médio: <b>${esc(cs[0].name)}</b> (${fV(cs[0].var)}, ${fD(cs[0].imp)}). Só preço: ${fD(cs[0].ps)}; mix: ${fD(cs[0].mix)}.`));
+  const pd=Q.pd_vd;
+  if(pd.n)ins.push(li('r',`Em <b>${pd.n} ${pd.n===1?'item':'itens'}</b> o preço caiu e o volume também caiu (a pior combinação): ${fL(pd.q)} em ${y1}, impacto de preço ${fD(pd.i)}.`));
+  if(Q.pd_vu.n)ins.push(li('y',`Em <b>${Q.pd_vu.n} ${Q.pd_vu.n===1?'item':'itens'}</b> o preço caiu e o volume subiu: o desconto pode estar trazendo litros. Impacto de preço ${fD(Q.pd_vu.i)}; confira a MC desses itens.`));
+  if(Q.pu_vd.n)ins.push(li('y',`Em <b>${Q.pu_vd.n} ${Q.pu_vd.n===1?'item':'itens'}</b> o preço subiu e o volume caiu (${fL(Q.pu_vd.q)} em ${y1}): vale ver se o repasse custou clientes.`));
+  const ms=mixSeries(rows);
+  if(ms.length>1){const mn=ms.reduce((a,b)=>b.v<a.v?b:a),mx=ms.reduce((a,b)=>b.v>a.v?b:a);
+    if(mn.v<0)ins.push(li('r',`Mês com maior queda de preço médio contra ${y0}: <b>${MESC[mn.m]}</b> (${fV(mn.v)}, ${fPL(mn.p0)} → ${fPL(mn.p1)}). O preço médio do mês também varia com o mix vendido.`));
+    if(mx.v>0)ins.push(li('g',`Mês com maior alta contra ${y0}: <b>${MESC[mx.m]}</b> (${fV(mx.v)}).`))}
+  const dp=dispersao();
+  if(dp.length)ins.push(li('y',`Mesmo item, preços diferentes entre clientes: <b>${esc(dp[0].name)}</b> sai a ${fPL(dp[0].lo.p)} para ${esc(dp[0].lo.cl)} e a ${fPL(dp[0].hi.p)} para ${esc(dp[0].hi.cl)} (${fV(dp[0].spread)} de diferença).`));
+  const {ms:mm,t:ser}=monthSeries(rows);
+  const cfg={ms:mm,a:ser.map(o=>o.qa>0?o.a/o.qa:0),b:ser.map(o=>o.qb>0?o.b/o.qb:0),fmt:(v,ax)=>ax?v.toFixed(2).replace('.',','):BRL2.format(v),label:'Preço médio por mês',h:230,hl:true};
+  /* tabela de detalhe */
+  const det=[...E].filter(x=>x.ok).sort((a,b)=>b.b-a.b).slice(0,25);
+  const tabela=`<div class="tw"><table><thead><tr><th>${SING[dim]}</th><th class="r hm">Preço ${y0}</th><th class="r">Preço ${y1}</th><th class="r">Var.</th><th class="r hm">Litros ${y1}</th><th class="r">Impacto</th><th class="r hm">Só preço</th>${dim!=='item'?'<th class="r hm">Mix</th>':''}</tr></thead><tbody>${det.map(x=>`<tr><td>${esc(x.name)}</td><td class="r hm">${fPL(x.p0)}</td><td class="r">${fPL(x.p1)}</td><td class="r"><span class="tag ${cls(x.var)}">${arrow(x.var)}${fV(x.var)}</span></td><td class="r hm">${fL(x.qb)}</td><td class="r">${fD(x.imp)}</td><td class="r hm">${fD(x.ps)}</td>${dim!=='item'?`<td class="r hm">${fD(x.mix)}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+  const dpl=dp.slice(0,6).map(e=>`<div class="lrow"><span class="t">${esc(e.name)}<span class="sub">mais barato: ${esc(e.lo.cl)} · mais caro: ${esc(e.hi.cl)}</span></span><span class="v">${fPL(e.lo.p)} a ${fPL(e.hi.p)}<span class="sub"><span class="tag wr">${fV(e.spread)}</span> média ${fPL(e.pm)}</span></span></div>`).join('');
+  return `<div class="kpis">${kp('Preço médio '+y1,P1?fPL(P1):'—',P0?`${y0}: ${fPL(P0)}`:'')}${kp('Variação',vP==null?'—':fV(vP),'receita ÷ litros')}${kp('Efeito preço',P0?fV(efP/P0):'—','mesmos itens')}${kp('Efeito mix',P0?fV(efM/P0):'—','o que está sendo vendido')}</div>
+  <div class="card"><h3 style="margin-bottom:10px">Insights sobre o preço médio</h3><ul class="ins">${ins.join('')||'<li class="note">Sem dados suficientes no período.</li>'}</ul></div>
+  ${chartTab('pm:main','Preço médio por mês (R$/L)',cfg,true)}
+  <div class="kpis" style="margin-top:14px">${qt('pu_vu','Preço ↑ e volume ↑','Melhor cenário','good')}${qt('pu_vd','Preço ↑ e volume ↓','Repasse com perda','warn')}${qt('pd_vu','Preço ↓ e volume ↑','Desconto trazendo volume','warn')}${qt('pd_vd','Preço ↓ e volume ↓','Pior cenário','bad')}</div>
+  <p class="note" style="margin:-4px 0 14px">Cada item é classificado pelo preço e pelo volume (litros) contra ${y0}. Variações de preço menores que 1% ficam de fora.</p>
+  <div class="card"><div class="ch"><h3>Onde o preço médio mais mudou</h3>${dimSeg('data-dimp',dim)}</div>
+  <p class="note" style="margin:2px 0 10px">Ordenado pelo impacto em R$ = (preço ${y1} − preço ${y0}) × litros de ${y1}. ${dim==='item'?'Em itens, a variação é preço puro do mesmo produto.':'Em '+DIMS.find(d=>d[0]===dim)[1].toLowerCase()+', a variação mistura reajuste e mix; "só preço" e "mix" separam os dois.'}</p>
+  <div class="cols2"><div><h4 class="sec" style="margin-top:0">Maiores quedas</h4><div class="lst">${quedas.map(rowL).join('')||vazio2}</div></div><div><h4 class="sec" style="margin-top:0">Maiores altas</h4><div class="lst">${altas.map(rowL).join('')||vazio2}</div></div></div></div>
+  <div class="card"><h3 style="margin-bottom:8px">Detalhe por ${DIMS.find(d=>d[0]===dim)[1].toLowerCase()} (25 maiores em receita)</h3>${tabela}</div>
+  ${dp.length?`<div class="card"><h3>Mesmo item, preço diferente entre clientes</h3><p class="note" style="margin:2px 0 10px">Itens vendidos a 2 ou mais clientes em ${y1}, com diferença de pelo menos 5% entre o mais barato e o mais caro. Ordenado pelo quanto os clientes abaixo da média pagam a menos (indicativo: pode refletir frete, volume ou negociação).</p><div class="lst">${dpl}</div></div>`:''}`;
+}
+function mcEnts(dim){
+  const D=dimDef(dim),g=group(D.rows(),D.key);
+  const t=sum(D.rows()),avg=t.b>0?t.mc/t.b:0;
+  return {avg,list:ents(g,k=>({name:D.name(k)})).filter(x=>x.b>0).map(x=>({...x,m:x.mc/x.b,gap:x.mc-avg*x.b}))};
+}
+function vMc(){
+  if(!META.temMc)return `<div class="card"><p class="note">Esta análise precisa da coluna R$ MC na planilha.</p></div>`;
+  const y1=META.y1,rows=C.rows,tot=sum(rows),dim=S.dimM,avg=tot.b>0?tot.mc/tot.b:0;
+  const {list}=mcEnts(dim);
+  const baixa=list.filter(x=>x.gap<0).sort((a,b)=>a.gap-b.gap).slice(0,8);
+  const alta=list.filter(x=>x.gap>0).sort((a,b)=>b.gap-a.gap).slice(0,8);
+  const rowL=x=>`<div class="lrow"><span class="t">${esc(x.name)}<span class="sub">receita ${fC(x.b)} · MC ${fC(x.mc)}</span></span><span class="v">${fPm(x.m)}<span class="sub"><span class="tag ${x.gap<0?'dn':'up'}">${pp(x.m-avg)}</span> ${fD(x.gap)}</span></span></div>`;
+  const it=mcEnts('item').list,neg=it.filter(x=>x.mc<0).sort((a,b)=>a.mc-b.mc);
+  const negS=neg.reduce((s,x)=>s+x.mc,0),negB=neg.reduce((s,x)=>s+x.b,0);
+  /* faixas */
+  const F=[['Negativa','var(--bad)',x=>x.m<0],['0 a 10%','var(--warn)',x=>x.m>=0&&x.m<0.1],['10 a 20%','var(--y0)',x=>x.m>=0.1&&x.m<0.2],['20 a 30%','color-mix(in srgb,var(--good) 55%,var(--surface))',x=>x.m>=0.2&&x.m<0.3],['30% ou mais','var(--good)',x=>x.m>=0.3]].map(f=>{const s=it.filter(f[2]);return {n:f[0],c:f[1],q:s.length,b:s.reduce((a,x)=>a+x.b,0),mc:s.reduce((a,x)=>a+x.mc,0)}});
+  const fb=F.reduce((s,f)=>s+f.b,0)||1;
+  const faixas=`<div class="tw"><table><thead><tr><th>MC % do item</th><th class="r">Itens</th><th class="r">Receita ${y1}</th><th class="r">% da receita</th><th class="r hm">MC R$</th><th class="hm" style="width:28%"></th></tr></thead><tbody>${F.map(f=>`<tr><td><i class="sq" style="background:${f.c}"></i>${f.n}</td><td class="r">${f.q}</td><td class="r">${fC(f.b)}</td><td class="r">${fPm(f.b/fb)}</td><td class="r hm">${fC(f.mc)}</td><td class="hm"><div class="bar"><div style="width:${(f.b/fb*100).toFixed(1)}%;height:100%;background:${f.c}"></div></div></td></tr>`).join('')}</tbody></table></div>`;
+  /* insights */
+  const ins=[];
+  ins.push(li('',`MC da carteira: <b>${fPm(avg)}</b> (${fC(tot.mc)} sobre ${fC(tot.b)} de receita líquida em ${y1}).`));
+  const {ms,t:ser}=monthSeries(rows),mc=ms.map((m,i)=>({m,v:ser[i].b>0?ser[i].mc/ser[i].b:null})).filter(x=>x.v!=null);
+  if(mc.length>1){const mn=mc.reduce((a,b)=>b.v<a.v?b:a),mx=mc.reduce((a,b)=>b.v>a.v?b:a);
+    ins.push(li('',`A MC mensal variou de <b>${fPm(mn.v)}</b> (${MESC[mn.m]}) a <b>${fPm(mx.v)}</b> (${MESC[mx.m]}).`));
+    const l=mc[mc.length-1],p=mc[mc.length-2];
+    ins.push(li(l.v>=p.v?'g':'r',`No último mês (${MESC[l.m]}), a MC foi <b>${fPm(l.v)}</b>, ${pp(l.v-p.v)} contra ${MESC[p.m]}.`))}
+  if(neg.length)ins.push(li('r',`<b>${neg.length} ${neg.length===1?'item tem':'itens têm'} MC negativa</b>: somam <b>${fD(negS)}</b> de margem sobre ${fC(negB)} de receita. O pior é <b>${esc(neg[0].name)}</b> (${fPm(neg[0].m)}, ${fD(neg[0].mc)}).`));
+  else ins.push(li('g','Nenhum item com MC negativa no período.'));
+  const baixos=it.filter(x=>x.m<0.1&&x.m>=0);
+  if(baixos.length)ins.push(li('y',`<b>${baixos.length} itens</b> têm MC entre 0 e 10%, com ${fC(baixos.reduce((s,x)=>s+x.b,0))} de receita (${fPm(baixos.reduce((s,x)=>s+x.b,0)/fb)}).`));
+  DIMS.forEach(d=>{const r=mcEnts(d[0]).list.filter(x=>x.gap<0).sort((a,b)=>a.gap-b.gap)[0];
+    if(r&&d[0]!=='item')ins.push(li('r',`${SING[d[0]]} com maior perda de margem contra a média: <b>${esc(r.name)}</b>, MC <b>${fPm(r.m)}</b> (${pp(r.m-avg)}), equivale a ${fD(r.gap)} de MC.`))});
+  const pi=precoEnts('item').filter(x=>x.ok&&x.var<=-0.02&&x.mc/x.b<avg).sort((a,b)=>b.b-a.b);
+  if(pi.length)ins.push(li('y',`Preço em queda e MC abaixo da média em <b>${pi.length} itens</b> (${fC(pi.reduce((s,x)=>s+x.b,0))} de receita). O maior é <b>${esc(pi[0].name)}</b>: preço ${fV(pi[0].var)}, MC ${fPm(pi[0].mc/pi[0].b)}.`));
+  const mt=mcEnts(dim);
+  const cfg={ms,a:null,b:ser.map(o=>o.b>0?o.mc/o.b:0),fmt:v=>fPm(v),label:'MC % por mês',h:230,hl:true,extra:i=>`MC: ${fC(ser[i].mc)} sobre receita de ${fC(ser[i].b)}`};
+  const det=[...list].sort((a,b)=>b.b-a.b).slice(0,25);
+  const tabela=`<div class="tw"><table><thead><tr><th>${SING[dim]}</th><th class="r">Receita ${y1}</th><th class="r hm">MC R$</th><th class="r">MC %</th><th class="r">Contra a média</th><th class="r hm">Impacto</th></tr></thead><tbody>${det.map(x=>`<tr><td>${esc(x.name)}</td><td class="r">${fC(x.b)}</td><td class="r hm">${fC(x.mc)}</td><td class="r">${fPm(x.m)}</td><td class="r"><span class="tag ${x.m-avg<=-0.0005?'dn':x.m-avg>=0.0005?'up':'neu'}">${pp(x.m-avg)}</span></td><td class="r hm">${fD(x.gap)}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="kpis">${kp('MC % '+y1,fPm(avg),'margem de contribuição ÷ receita líquida')}${kp('MC em R$',fC(tot.mc),'sobre '+fC(tot.b))}${kp('Itens com MC negativa',String(neg.length),neg.length?fD(negS):'nenhum')}${kp('Itens abaixo de 10%',String(neg.length+baixos.length),fPm((negB+baixos.reduce((s,x)=>s+x.b,0))/fb)+' da receita')}</div>
+  <div class="card"><h3 style="margin-bottom:10px">Insights sobre a margem de contribuição</h3><ul class="ins">${ins.join('')}</ul></div>
+  ${chartTab('mc:main','MC % por mês',cfg,false,'A MC existe apenas para '+y1+', então não há comparação com '+META.y0+'. A comparação é entre meses e contra a média da carteira.')}
+  <div class="card"><h3>Itens por faixa de margem</h3><p class="note" style="margin:2px 0 10px">Quanto da receita de ${y1} está em cada faixa de MC %.</p>${faixas}</div>
+  <div class="card"><div class="ch"><h3>Onde a margem está acima e abaixo da média</h3>${dimSeg('data-dimm',dim)}</div>
+  <p class="note" style="margin:2px 0 10px">Média da carteira: ${fPm(avg)}. O impacto é quanto de MC o grupo tem a mais ou a menos do que teria se rendesse a média (MC − média × receita).</p>
+  <div class="cols2"><div><h4 class="sec" style="margin-top:0">Abaixo da média</h4><div class="lst">${baixa.map(rowL).join('')||vazio2}</div></div><div><h4 class="sec" style="margin-top:0">Acima da média</h4><div class="lst">${alta.map(rowL).join('')||vazio2}</div></div></div></div>
+  <div class="card"><h3 style="margin-bottom:8px">Detalhe por ${DIMS.find(d=>d[0]===dim)[1].toLowerCase()} (25 maiores em receita)</h3>${tabela}</div>`;
+}
+
+const TABS=[['res','Resumo',vResumo],['cli','Clientes',vClientes],['fam','Famílias',vFam],['item','Itens',vItem],['marca','Marca',vMarca],['linha','Linhas',vLinha],['uf','Estados',vUf],['preco','Preço médio',vPreco],['mc','MC %',vMc],['base','Diagnóstico da base',vBase]];
 
 /* =====================================================================
    7. DESENHO DA PÁGINA
@@ -874,7 +1022,9 @@ function atalho(k){
   else if(k==='ano'){S.d0=iso(ini);S.d1=iso(ult)}
 }
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm],[data-emp]');if(!t)return;
+  const t=e.target.closest('[data-tab],[data-sort],[data-more],[data-exp],[data-metric],[data-go],[data-setcli],[data-modo],[data-atalho],[data-cheio],[data-tm],[data-emp],[data-dimp],[data-dimm]');if(!t)return;
+  if(t.dataset.dimp){S.dimP=t.dataset.dimp;draw();return}
+  if(t.dataset.dimm){S.dimM=t.dataset.dimm;draw();return}
   if(t.dataset.emp!==undefined){S.emp=t.dataset.emp;draw();return}
   if(t.dataset.tm){S.tm=t.dataset.tm;draw();return}
   if(t.dataset.modo){S.modo=t.dataset.modo;draw()}
