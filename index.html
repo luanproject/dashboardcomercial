@@ -203,8 +203,8 @@ body.tv .seg button{height:40px;font-size:14px}
   <main id="main" hidden>
     <div class="filters" id="filters"></div>
     <nav class="tabs" id="tabs" role="tablist"></nav>
-    <div id="aviso"></div>
     <section id="view"></section>
+    <div id="aviso" style="margin-top:14px"></div>
     <p class="foot" id="foot"></p>
   </main>
 </div>
@@ -1084,7 +1084,7 @@ function draw(){
   $('#sub').textContent=`${cliMode()?'Valor de mercadoria':'Receita líquida'} · ${emDia()?`${brD(S.d0)} a ${brD(S.d1)} de ${META.y1} contra o mesmo período de ${META.y0}`:`${lbl} ${META.y1} contra ${META.y0}`}`+(S.emp?` · ${S.emp}`:'')+(S.uf?` · ${S.uf}`:'')+(S.cli?` · ${S.cli[0]==='c'?(META.codMat[k0()]||'')+' (cód. '+k0()+')':S.cli.slice(2)}`:'');
   {const av=(S.msg?`<span>${S.msg}</span>`:'')||avisoPeriodo();S.msg='';$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
   const TT=tabsAt(),tab=TT.find(t=>t[0]===S.tab)||TT[0];
-  const filB=cliMode()&&S.cli[0]==='c'&&nFil()>1?`<div class="notice" style="margin-bottom:14px"><span>Mostrando apenas a filial <b>${esc(filLbl(S.cli.slice(2)))}</b>.</span><button data-setcli="m:${esc(matrizSel())}">Ver todas as filiais</button></div>`:'';
+  const filB='';
   $('#view').innerHTML=rows.length?filB+tab[2]():filB+'<div class="card">Sem dados para os filtros escolhidos.</div>';
   Object.keys(TABLES).forEach(drawTable);
   drawCharts();
