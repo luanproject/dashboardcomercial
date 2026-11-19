@@ -315,7 +315,7 @@ function padronizar(tabela){
   const cMes=find('mes'), cCod=find('clientecodigo','codigocliente');
   const cItem=find('item'), cItemC=find('itemcodigo');
   const cLinha=find('linhacomercial'), cFam=find('familiacomercial');
-  const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa'), cData=find('datafaturamento','datadefaturamento','datafatura',/^data/);
+  const cUf=find('estado','uf'), cEmp=find('grupoempresa','empresa'), cMarca=find('marca'), cData=find('datafaturamento','datadefaturamento','datafatura',/^data/);
   const liq=[],qtd=[],mer=[];
   head.forEach((h,i)=>{let m=h.match(/^rliquido(\d{4})$/);if(m)liq.push([+m[1],i]);m=h.match(/^qtdlt(\d{4})$/);if(m)qtd.push([+m[1],i]);m=h.match(/^rmercad(\d{4})$/);if(m)mer.push([+m[1],i])});
   liq.sort((a,b)=>a[0]-b[0]);qtd.sort((a,b)=>a[0]-b[0]);
@@ -342,7 +342,7 @@ function padronizar(tabela){
     if(m<0||!cli){descartadas++;continue}
     if(cData>=0&&!dt)semData++;
     rows.push({dm:dt?dt.m*100+dt.d:-1,ano:dt?dt.y:0,cli,cod:txt(r,cCod,''),mes:m,item:txt(r,cItem,'—'),itemc:txt(r,cItemC,''),linha:txt(r,cLinha,'—'),fam:txt(r,cFam,txt(r,cItem,'—')),
-      uf:txt(r,cUf,'—'),emp:txt(r,cEmp,'—'),a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc]),ma:m0i<0?0:num(r[m0i]),mb:m1i<0?0:num(r[m1i])});
+      uf:txt(r,cUf,'—'),emp:cMarca>=0?txt(r,cMarca,'Sem marca'):txt(r,cEmp,'—'),pl:cMarca>=0?txt(r,cEmp,'—'):'—',a:num(r[i0]),b:num(r[i1]),qa:q0<0?0:num(r[q0]),qb:q1<0?0:num(r[q1]),mc:cMc<0?0:num(r[cMc]),ma:m0i<0?0:num(r[m0i]),mb:m1i<0?0:num(r[m1i])});
   }
   if(!rows.length)throw new Error('A planilha não tem linhas válidas (confira as colunas Cliente e Mês).');
   const ignoradas=(tabela[0]||[]).filter((_,i)=>!usadas.has(i)&&String(tabela[0][i]).trim()!=='');
@@ -351,7 +351,7 @@ function padronizar(tabela){
   const melhor=new Map();let itensMultiNome=0;
   nomesItem.forEach((m,k)=>{if(m.size>1)itensMultiNome++;melhor.set(k,[...m].sort((a,b)=>b[1]-a[1])[0][0])});
   rows.forEach(r=>{if(r.itemc)r.item=melhor.get(r.itemc)});
-  return {rows,y0,y1,semData,colData:cData>=0,temMc:cMc>=0,temMerc:m0i>=0&&m1i>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
+  return {rows,y0,y1,semData,colData:cData>=0,temMc:cMc>=0,temMerc:m0i>=0&&m1i>=0,temMarca:cMarca>=0,temQtd:q1>=0,ignoradas,colunasLidas:head.length,descartadas,itensMultiNome,totalLinhas:Math.max(0,tabela.length-1)};
 }
 
 /* =====================================================================
@@ -382,7 +382,7 @@ function group(rows,kf){const m=new Map();for(const r of rows){const k=kf(r);let
 const ents=(m,extra)=>[...m].map(([k,o])=>Object.assign({key:k,name:k},o,extra?extra(k,o):{}));
 const li=(k,t)=>`<li><span class="dot ${k}"></span><span>${t}</span></li>`;
 
-const S={vis:'gestor',msg:'',dimP:'cli',dimM:'cli',tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
+const S={vis:'gestor',msg:'',pl:'',dimP:'cli',dimM:'cli',tm:'r',tab:'res',modo:'mes',d0:'',d1:'',mesCheio:false,emp:'',uf:'',cli:'',m0:0,m1:11,metric:'b',sort:{},q:{},lim:{},exp:new Set(),open:new Set()};
 let DATA=null,META={},C=null,TABLES={},CHARTS={};
 
 /* =====================================================================
@@ -684,12 +684,12 @@ function empBar(){
 }
 const vFam=()=>empBar()+rankCard('fam','Famílias comerciais',ents(group(C.rows,r=>r.fam),k=>({sub:''})),r=>r.fam,{search:true});
 const vItem=()=>empBar()+rankCard('item','Itens',ents(group(C.rows,r=>r.item+'§'+r.itemc),k=>({name:k.split('§')[0],sub:k.split('§')[1]})).map(e=>e),r=>r.item+'§'+r.itemc,{search:true});
-const vLinha=()=>empBar()+rankCard('linha','Linha comercial',ents(group(C.rows,r=>r.linha)),r=>r.linha)+(META.emps.length>1?rankCard('emp','Empresa do grupo',ents(group(C.rows,r=>r.emp)),r=>r.emp):'');
+const vLinha=()=>empBar()+rankCard('linha','Linha comercial',ents(group(C.rows,r=>r.linha)),r=>r.linha)+(META.temMarca&&META.pls.length>1?rankCard('emp','Planta de faturamento',ents(group(C.rows,r=>r.pl)),r=>r.pl):(!META.temMarca&&META.emps.length>1?rankCard('emp','Empresa do grupo',ents(group(C.rows,r=>r.emp)),r=>r.emp):''));
 const vUf=()=>empBar()+rankCard('uf','Estado',ents(group(C.rows,r=>r.uf)),r=>r.uf);
-/* ---------- aba MARCA (a marca é a coluna "Grupo Empresa" da planilha) ---------- */
+/* ---------- aba MARCA (a marca é a coluna "Marca"; sem ela, usa "Grupo Empresa") ---------- */
 function vMarca(){
   const rows=C.rows,t=C.tot,y0=META.y0,y1=META.y1,SEP='\u0001';
-  if(!META.emps.length)return '<div class="card">A planilha não tem a coluna <b>Grupo Empresa</b> (a marca), então não há como separar por marca.</div>';
+  if(!META.emps.length)return '<div class="card">A planilha não tem a coluna <b>Marca</b> (nem <b>Grupo Empresa</b>), então não há como separar por marca.</div>';
   const bm=ents(group(rows,r=>r.emp)).filter(x=>x.a||x.b);
   if(!bm.length)return '<div class="card">Sem dados para os filtros escolhidos.</div>';
   const ord=[...bm].sort((x,y)=>META.emps.indexOf(x.name)-META.emps.indexOf(y.name));      /* cor segue a marca, não o ranking */
@@ -718,7 +718,13 @@ function vMarca(){
   const chipsC=[...dist].sort((x,y)=>y[0]-x[0]).map(([n,d])=>`<span class="chip${n===ord.length&&n>1?' up':''}"><b>${d.n}</b> ${d.n>1?'compram':'compra'} ${n===1?'1 marca':(n===ord.length?'as '+n+' marcas':n+' marcas')} · ${fC(d.v)}</span>`).join('');
   const card3=`<div class="card"><h3>Clientes por marca</h3><p class="note" style="margin:2px 0 10px">Receita de ${y1} de cada cliente em cada marca. Clientes agrupados por Matriz Razão.</p><div class="chips">${chipsC}</div>
     <div class="tw"><table><thead><tr><th>Cliente</th>${ord.map(x=>`<th class="r hm">${esc(x.name)} ${y1}</th>`).join('')}<th class="r hm">Total ${y0}</th><th class="r">Total ${y1}</th><th class="r">Var.</th>${META.temQtd?`<th class="r hm">Litros ${y1}</th><th class="r hm">Var. L</th>`:''}</tr></thead><tbody>${cl.map(x=>`<tr><td>${esc(x.name)}</td>${ord.map(m=>`<td class="r hm">${x.m[m.name]>0?fR(x.m[m.name]):'—'}</td>`).join('')}<td class="r hm">${fR(x.a)}</td><td class="r"><b>${fR(x.b)}</b></td><td class="r">${vtag(x.a,x.b)}</td>${META.temQtd?`<td class="r hm">${fL(x.qb)}</td><td class="r hm">${vtag(x.qa,x.qb)}</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
-  return card1+card2+card3;
+  let card4='';
+  if(META.temMarca&&META.pls.length>1){
+    const pm=group(rows,r=>r.pl+SEP+r.emp),pls=[...new Set([...pm.keys()].map(k=>k.split(SEP)[0]))],mk=ord.map(x=>x.name);
+    const tot=pl=>mk.reduce((s,m)=>s+((pm.get(pl+SEP+m)||{b:0}).b),0);
+    card4=`<div class="card"><h3>Planta de faturamento × marca</h3><p class="note" style="margin:2px 0 10px">Receita líquida de ${y1}: onde cada marca é faturada.</p><div class="tw"><table><thead><tr><th>Planta</th>${mk.map(m=>`<th class="r">${esc(m)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${pls.sort((x,y)=>tot(y)-tot(x)).map(pl=>`<tr><td>${esc(pl)}</td>${mk.map(m=>`<td class="r">${fC((pm.get(pl+SEP+m)||{b:0}).b)}</td>`).join('')}<td class="r">${fC(tot(pl))}</td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+  return card1+card2+card3+card4;
 }
 
 /* ---------- DIAGNÓSTICO DA BASE (calculado sobre a planilha inteira, sem filtros) ---------- */
@@ -728,7 +734,7 @@ function diagnostico(){
   const L=[];                                                    /* {k:'g'|'y'|'', t:texto} */
   const add=(k,t)=>L.push(li(k,t));
   let dup=0;const seen=new Set();
-  R.forEach(r=>{const k=[r.cli,r.cod,r.mes,r.dm,r.itemc,r.item,r.linha,r.fam,r.uf,r.emp,r.a,r.b,r.qa,r.qb,r.mc].join(SEP);if(seen.has(k))dup++;else seen.add(k)});
+  R.forEach(r=>{const k=[r.cli,r.cod,r.mes,r.dm,r.itemc,r.item,r.linha,r.fam,r.uf,r.emp,r.pl,r.a,r.b,r.qa,r.qb,r.mc].join(SEP);if(seen.has(k))dup++;else seen.add(k)});
   dup?add('y',`<b>${N(dup)}</b> linhas exatamente duplicadas. Foram mantidas, porque a base não traz número de nota para confirmar se são repetidas.`):add('g','Nenhuma linha exatamente duplicada.');
   const nA=cnt(r=>r.a<0),nB=cnt(r=>r.b<0);
   (nA||nB)?add('y',`<b>${N(nA)}</b> linhas com receita negativa em ${y0} (${fC(val(r=>r.a<0,'a'))}) e <b>${N(nB)}</b> em ${y1} (${fC(val(r=>r.b<0,'b'))}). São devoluções maiores que a venda do item no mês e entram no líquido.`):add('g','Nenhuma linha com receita negativa.');
@@ -749,7 +755,7 @@ function diagnostico(){
   const famLin=new Map();R.forEach(r=>{(famLin.get(r.fam)||famLin.set(r.fam,new Set()).get(r.fam)).add(r.linha)});
   const multiLin=[...famLin.values()].filter(s=>s.size>1).length;
   multiLin?add('y',`<b>${N(multiLin)}</b> famílias aparecem em mais de uma linha comercial.`):add('g','Cada família pertence a uma única linha comercial.');
-  const campos=[['Estado','uf'],['Marca (Grupo Empresa)','emp'],['Linha Comercial','linha'],['Família Comercial','fam']].map(([n,k])=>[n,cnt(r=>r[k]==='—')]).filter(x=>x[1]>0);
+  const campos=[['Estado','uf'],[META.temMarca?'Marca':'Marca (Grupo Empresa)','emp'],['Linha Comercial','linha'],['Família Comercial','fam']].map(([n,k])=>[n,cnt(r=>r[k]==='—')]).filter(x=>x[1]>0);
   campos.length?add('y',`Campos vazios ou ausentes: ${campos.map(x=>`${x[0]} (${x[1]===R.length?'coluna não encontrada':N(x[1])+' linhas'})`).join('; ')}.`):add('g','Sem campos vazios em cliente, produto, estado e marca.');
   META.descartadas?add('y',`<b>${N(META.descartadas)}</b> linhas da planilha foram ignoradas por não terem mês ou cliente reconhecido.`):add('g',`Todas as ${N(META.totalLinhas)} linhas da planilha foram lidas.`);
   const soA=cnt(r=>r.a!==0&&r.b===0),soB=cnt(r=>r.a===0&&r.b!==0),zero=cnt(r=>r.a===0&&r.b===0);
@@ -778,7 +784,7 @@ function vBase(){
     li('',`Receita = coluna <b>R$ Líquido</b>. Comparação do mesmo período: ${MES[META.months[0]]}–${MES[META.months[META.months.length-1]]} de ${y1} contra o mesmo intervalo de ${y0}.`),
     ...(META.temData?[li('',`Período: <b>Por mês</b> usa a coluna Mês; <b>Por dia</b> usa a data de faturamento e compara com as mesmas datas de ${y0}. Quando o último mês de ${y1} está incompleto, o mês de ${y0} é cortado no mesmo dia (dá para comparar com o mês inteiro no aviso).`)]:[]),
     li('',`Cliente ativo = receita líquida maior que zero em ${y1}. Cliente é o grupo (Matriz Razão); o filtro Cliente também mostra cada código.`),
-    li('',`Marca = coluna <b>Grupo Empresa</b>. Tendência da marca: crescendo com variação de +2% ou mais, caindo com −2% ou menos.`),
+    li('',`${META.temMarca?'Marca = coluna <b>Marca</b> (do produto); Planta = coluna <b>Grupo Empresa</b> (onde é faturado).':'Marca = coluna <b>Grupo Empresa</b>.'} Tendência da marca: crescendo com variação de +2% ou mais, caindo com −2% ou menos.`),
     li('',`Situação de cliente ou família: <b>Novo</b> (sem compra em ${y0}), <b>Perdido</b> (sem compra em ${y1}), <b>Em queda</b> (mais de 10% abaixo), <b>Em alta</b> (mais de 10% acima), <b>Estável</b>.`),
     li('',`Preço médio = receita líquida ÷ litros. MC % = margem de contribuição ÷ receita líquida de ${y1} (a MC só existe para ${y1}).`),
     li('',`Perdidos (Onde agir primeiro) = combinações de cliente × família que compraram em ${y0} e não compraram em ${y1}. Em queda = combinações que compraram menos.`),
@@ -951,7 +957,7 @@ function setVis(v){
     if(cliMode())return;
     if(!META.temMerc){S.msg='Este arquivo de dados ainda não tem as colunas <b>R$ Mercad</b>. Gere um novo <b>dados.enc</b> com a ferramenta atualizada para usar o Modo Cliente.';draw();return}
     if(!S.cli){S.msg='Escolha um cliente no filtro <b>Cliente</b> antes de entrar no <b>Modo Cliente</b>. Ele mostra apenas os dados desse cliente.';draw();return}
-    S.mz=S.cli[0]==='m'?S.cli.slice(2):(S.mzSel||META.codMat[S.cli.slice(2)]||'');S.vis='cliente';S.uf='';S.tab='cres';META.temMc=false;
+    S.mz=S.cli[0]==='m'?S.cli.slice(2):(S.mzSel||META.codMat[S.cli.slice(2)]||'');S.vis='cliente';S.uf='';S.pl='';S.tab='cres';META.temMc=false;
   }else{
     if(!cliMode())return;
     S.vis='gestor';META.temMc=META.temMcReal;S.tab='res';
@@ -1050,7 +1056,8 @@ function drawFilters(){
   let h='';
   if(cliMode()){const mz=matrizSel(),cs=META.cods[mz]||[];if(cs.length>1)h+=`<label class="full">Filial<select id="f-fil"><option value="m:${esc(mz)}" ${S.cli==='m:'+mz?'selected':''}>Todas as filiais</option>${cs.map(x=>`<option value="c:${esc(x.cod)}" ${S.cli==='c:'+x.cod?'selected':''}>${esc(filLbl(x.cod))}</option>`).join('')}</select></label>`}
   else{
-  if(META.emps.length>1)h+=sel('f-emp','Empresa',[['','Todas']].concat(META.emps.map(x=>[x,x])),S.emp);
+  if(META.emps.length>1)h+=sel('f-emp',META.temMarca?'Marca':'Empresa',[['','Todas']].concat(META.emps.map(x=>[x,x])),S.emp);
+  if(META.pls.length>1)h+=sel('f-pl','Planta de faturamento',[['','Todas']].concat(META.pls.map(x=>[x,x])),S.pl);
   if(META.ufs.length>1)h+=sel('f-uf','Estado',[['','Todos']].concat(META.ufs.map(x=>[x,x])),S.uf);
   if(META.clientes.length>1||META.codsTotal>META.clientes.length){
     let o=`<option value="">Todos</option>`;
@@ -1075,7 +1082,7 @@ const tabsAt=()=>cliMode()?TABSC.filter(t=>t[0]!=='cfil'||nFil()>1):TABS;
 function drawTabs(){$('#tabs').innerHTML=tabsAt().map(t=>`<button class="tab" role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join('')}
 const k0=()=>S.cli.slice(2);
 function draw(){
-  const rowsAll=(cliMode()?DATA.rowsM:DATA.rows).filter(r=>(!S.emp||r.emp===S.emp)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
+  const rowsAll=(cliMode()?DATA.rowsM:DATA.rows).filter(r=>(!S.emp||r.emp===S.emp)&&(!S.pl||r.pl===S.pl)&&(!S.uf||r.uf===S.uf)&&noPeriodo(r));
   const k=S.cli.slice(2), mzc=cliMode()?matrizSel():'', rows=!S.cli?rowsAll:rowsAll.filter(r=>S.cli[0]==='m'?r.cli===k:(r.cod===k&&(!mzc||r.cli===mzc)));
   C={rows,rowsAll,tot:sum(rows),totAll:sum(rowsAll),codSel:S.cli[0]==='c'?k:''};
   drawFilters();drawTabs();TABLES={};CHARTS={};
@@ -1085,7 +1092,7 @@ function draw(){
   {const av=(S.msg?`<span>${S.msg}</span>`:'')||avisoPeriodo();S.msg='';$('#aviso').className=av?'notice':'';$('#aviso').innerHTML=av}
   const TT=tabsAt(),tab=TT.find(t=>t[0]===S.tab)||TT[0];
   const filB='';
-  $('#view').innerHTML=rows.length?filB+tab[2]():filB+'<div class="card">Sem dados para os filtros escolhidos.</div>';
+  $('#view').innerHTML=rows.length?filB+tab[2]():filB+(S.emp?empBar():'')+'<div class="card">Sem dados para os filtros escolhidos'+(S.emp?` (marca ${esc(S.emp)}). Use <b>Ambas</b> para ver tudo.`:'.')+'</div>';
   Object.keys(TABLES).forEach(drawTable);
   drawCharts();
 }
@@ -1156,7 +1163,7 @@ document.addEventListener('toggle',e=>{const d=e.target;if(d.matches&&d.matches(
 document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.q){S.q[e.target.dataset.q]=e.target.value;S.lim[e.target.dataset.q]=25;drawTable(e.target.dataset.q)}});
 document.addEventListener('change',e=>{
   const id=e.target.id;
-  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-cli'||id==='f-fil'){S.cli=e.target.value;if(id==='f-cli'){const o=e.target.selectedOptions[0];S.mzSel=S.cli[0]==='c'&&o&&o.parentElement.label?o.parentElement.label:''}if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
+  if(id==='f-emp')S.emp=e.target.value;else if(id==='f-pl')S.pl=e.target.value;else if(id==='f-cli'||id==='f-fil'){S.cli=e.target.value;if(id==='f-cli'){const o=e.target.selectedOptions[0];S.mzSel=S.cli[0]==='c'&&o&&o.parentElement.label?o.parentElement.label:''}if(S.cli){const k=S.cli.slice(2);S.open=new Set([S.cli[0]==='c'?META.codMat[k]:k])}}else if(id==='f-uf')S.uf=e.target.value;
   else if(id==='f-m0'){S.m0=+e.target.value;if(S.m1<S.m0)S.m1=S.m0}else if(id==='f-m1'){S.m1=+e.target.value;if(S.m0>S.m1)S.m0=S.m1}
   else if(id==='f-atalho'){if(!e.target.value)return;atalho(e.target.value)}
   else if(id==='f-d0'){if(!e.target.value)return;S.d0=e.target.value;if(S.d1<S.d0)S.d1=S.d0}
@@ -1205,7 +1212,7 @@ function iniciar(tabela,nome,modificado){
   const u=(f)=>[...new Set(d.rows.map(f))].sort();
   DATA.rowsM=d.temMerc?d.rows.map(r=>Object.assign({},r,{a:r.ma,b:r.mb,mc:0})):[];
   META={y0:d.y0,y1:d.y1,temMc:d.temMc,temMcReal:d.temMc,temMerc:d.temMerc,temQtd:d.temQtd,ignoradas:d.ignoradas,arquivo:nome,modificado,
-    months:[...new Set(d.rows.map(r=>r.mes))].sort((a,b)=>a-b),emps:u(r=>r.emp).filter(x=>x!=='—'),ufs:u(r=>r.uf).filter(x=>x!=='—'),clientes:u(r=>r.cli)};
+    months:[...new Set(d.rows.map(r=>r.mes))].sort((a,b)=>a-b),emps:u(r=>r.emp).filter(x=>x!=='—'),pls:d.temMarca?u(r=>r.pl).filter(x=>x!=='—'):[],temMarca:d.temMarca,ufs:u(r=>r.uf).filter(x=>x!=='—'),clientes:u(r=>r.cli)};
   META.descartadas=d.descartadas;META.itensMultiNome=d.itensMultiNome;META.totalLinhas=d.totalLinhas;
   META.cods={};META.codMat={};
   {const g=new Map();d.rows.forEach(r=>{if(!r.cod)return;const key=r.cli+'\u0001'+r.cod;let o=g.get(key);if(!o){o={cli:r.cli,cod:r.cod,uf:{}};g.set(key,o)}o.uf[r.uf]=(o.uf[r.uf]||0)+Math.abs(r.a)+Math.abs(r.b)});
